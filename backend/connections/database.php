@@ -65,5 +65,9 @@ class Database {
     public function closeConnection() {
         $this->conn = null;
     }
+
+    public function getLastInsertId() {
+        return $this->pdo->lastInsertId();
+    }
 }
 ?>

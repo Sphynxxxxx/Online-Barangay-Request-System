@@ -194,7 +194,7 @@ if ($conn->connect_error) {
             <div class="px-4 py-3">
                 <h5 class="mb-0">Admin Dashboard</h5>
             </div>
-            <a href="admin.php" class="d-block text-decoration-none text-white sidebar-item">
+            <a href="../../admin.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-speedometer2 me-2"></i> Dashboard
             </a>
             <a href="verify-users.php" class="d-block text-decoration-none text-white sidebar-item active">

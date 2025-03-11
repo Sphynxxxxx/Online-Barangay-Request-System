@@ -264,13 +264,13 @@ if (isset($_SESSION['success_msg'])) {
             <a href="admin.php" class="d-block text-decoration-none text-white sidebar-item active">
                 <i class="bi bi-speedometer2 me-2"></i> Dashboard
             </a>
-            <a href="verify-users.php" class="d-block text-decoration-none text-white sidebar-item">
+            <a href="Admin/view/verify-users.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-person-check me-2"></i> Verify Users
                 <?php if ($pendingUsers > 0): ?>
                 <span class="badge bg-warning rounded-pill float-end"><?php echo $pendingUsers; ?></span>
                 <?php endif; ?>
             </a>
-            <a href="document-requests.php" class="d-block text-decoration-none text-white sidebar-item">
+            <a href="Admin/view/document-requests.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-file-earmark-text me-2"></i> Document Requests
                 <?php if ($pendingRequests > 0): ?>
                 <span class="badge bg-warning rounded-pill float-end"><?php echo $pendingRequests; ?></span>
@@ -321,7 +321,7 @@ if (isset($_SESSION['success_msg'])) {
                                 <i class="bi bi-person-plus fs-1"></i>
                             </div>
                             <div class="mt-3">
-                                <a href="verify-users.php?status=pending" class="btn btn-light btn-sm text-primary">
+                                <a href="Admin/view/verify-users.php?status=pending" class="btn btn-light btn-sm text-primary">
                                     <i class="bi bi-arrow-right-circle"></i> Verify Now
                                 </a>
                             </div>
@@ -339,7 +339,7 @@ if (isset($_SESSION['success_msg'])) {
                                 <i class="bi bi-people fs-1"></i>
                             </div>
                             <div class="mt-3">
-                                <a href="verify-users.php?status=active" class="btn btn-light btn-sm text-success">
+                                <a href="Admin/view/verify-users.php?status=active" class="btn btn-light btn-sm text-success">
                                     <i class="bi bi-arrow-right-circle"></i> View All
                                 </a>
                             </div>
@@ -347,7 +347,7 @@ if (isset($_SESSION['success_msg'])) {
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card stat-card h-100 bg-warning text-dark">
+                    <div class="card stat-card h-100 bg-warning text-white">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -357,7 +357,7 @@ if (isset($_SESSION['success_msg'])) {
                                 <i class="bi bi-file-earmark-text fs-1"></i>
                             </div>
                             <div class="mt-3">
-                                <a href="document-requests.php?status=pending" class="btn btn-light btn-sm text-warning">
+                                <a href="Admin/view/document-requests.php?status=pending" class="btn btn-light btn-sm text-warning">
                                     <i class="bi bi-arrow-right-circle"></i> Process Now
                                 </a>
                             </div>
@@ -375,7 +375,7 @@ if (isset($_SESSION['success_msg'])) {
                                 <i class="bi bi-check-square fs-1"></i>
                             </div>
                             <div class="mt-3">
-                                <a href="document-requests.php?status=completed" class="btn btn-light btn-sm text-info">
+                                <a href="Admin/view/document-requests.php?status=completed" class="btn btn-light btn-sm text-info">
                                     <i class="bi bi-arrow-right-circle"></i> View All
                                 </a>
                             </div>
@@ -465,7 +465,7 @@ if (isset($_SESSION['success_msg'])) {
                     <div class="card h-100 shadow-sm">
                         <div class="card-header bg-light d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Recent Document Requests</h5>
-                            <a href="document-requests.php" class="btn btn-sm btn-primary">View All</a>
+                            <a href="Admin/view/document-requests.php" class="btn btn-sm btn-primary">View All</a>
                         </div>
                         <div class="card-body">
                             <?php if (empty($recentRequests)): ?>
@@ -510,7 +510,7 @@ if (isset($_SESSION['success_msg'])) {
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <a href="request-details.php?id=<?php echo $request['request_id']; ?>" class="btn btn-sm btn-outline-primary">
+                                                    <a href="Admin/view/request-details.php?id=<?php echo $request['request_id']; ?>" class="btn btn-sm btn-outline-primary">
                                                         <i class="bi bi-eye"></i> View
                                                     </a>
                                                 </td>
@@ -535,13 +535,13 @@ if (isset($_SESSION['success_msg'])) {
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-3 col-sm-6 mb-3">
-                                    <a href="verify-users.php?status=pending" class="btn btn-lg btn-outline-primary w-100 h-100 d-flex flex-column justify-content-center align-items-center py-3">
+                                    <a href="Admin/view/verify-users.php?status=pending" class="btn btn-lg btn-outline-primary w-100 h-100 d-flex flex-column justify-content-center align-items-center py-3">
                                         <i class="bi bi-person-check fs-2 mb-2"></i>
                                         <span>Verify Users</span>
                                     </a>
                                 </div>
                                 <div class="col-md-3 col-sm-6 mb-3">
-                                    <a href="document-requests.php?status=pending" class="btn btn-lg btn-outline-warning w-100 h-100 d-flex flex-column justify-content-center align-items-center py-3">
+                                    <a href="Admin/view/document-requests.php?status=pending" class="btn btn-lg btn-outline-warning w-100 h-100 d-flex flex-column justify-content-center align-items-center py-3">
                                         <i class="bi bi-file-earmark-check fs-2 mb-2"></i>
                                         <span>Process Requests</span>
                                     </a>

@@ -523,7 +523,7 @@ if (isset($_SESSION['success_msg'])) {
                             </div>
                             <div class="mb-3">
                                 <i class="bi bi-geo-alt-fill me-2 text-info"></i>
-                                <strong>Office:</strong> Barangay Hall, Main Street, Barangay Name
+                                <strong>Office:</strong> Barangay Hall Lanit, Jaro, Iloilo City
                             </div>
                             <div class="mb-3">
                                 <i class="bi bi-clock-fill me-2 text-info"></i>

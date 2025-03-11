@@ -7,19 +7,16 @@ require_once "../../vendor/autoload.php";
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// Initialize variables for form fields
 $email = $firstName = $middleName = $lastName = "";
 $birthday = $gender = $contactNumber = $zone = $houseNumber = $verificationCode = "";
 $errors = [];
 
-// Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
 // Process form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Validate email
     if (empty($_POST["email"])) {
         $errors["email"] = "Email is required";
     } else {
@@ -131,13 +128,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
     
-    // Validate verification code - This is the key part we're modifying
+    // Validate verification code 
     if (empty($_POST["verificationCode"])) {
         $errors["verificationCode"] = "Verification code is required";
     } else {
         $verificationCode = test_input($_POST["verificationCode"]);
         
-        // Check for client-side verification first (for better UX)
+        // Check for client-side verification first 
         $clientSideVerified = true; 
         
         // Now check server-side for security
@@ -173,26 +170,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // If no errors, proceed with registration
     if (empty($errors)) {
         try {
-            // Create database connection
+
             $db = new Database();
             
-            // Check if email already exists
             $checkEmailSql = "SELECT user_id FROM users WHERE email = ?";
             $result = $db->fetchOne($checkEmailSql, [$email]);
             
             if ($result) {
                 $errors["email"] = "Email already registered";
             } else {
-                // Begin transaction
                 $db->beginTransaction();
                 
-                // Hash the password
                 $hashedPassword = password_hash($_POST["password"], PASSWORD_DEFAULT);
                 
                 // Handle file upload
                 $targetDir = "uploads/";
                 
-                // Create directory if it doesn't exist
                 if (!file_exists($targetDir)) {
                     mkdir($targetDir, 0777, true);
                 }
@@ -204,7 +197,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 // Move uploaded file
                 if (move_uploaded_file($_FILES["idUpload"]["tmp_name"], $targetFile)) {
-                    // Insert user data
                     $insertSql = "INSERT INTO users (email, password, first_name, middle_name, last_name, 
                                  birthday, gender, contact_number, zone, house_number, id_path) 
                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -235,7 +227,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $db->commit();
                         
                         // Registration successful
-                        // Start session and log the user in
                         $_SESSION['user_id'] = $userId;
                         $_SESSION['email'] = $email;
                         $_SESSION['user_type'] = 'resident';
@@ -247,18 +238,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         header("Location: ../../index.php");
                         exit();
                     } else {
-                        // Rollback transaction
                         $db->rollback();
                         $errors["general"] = "Registration failed. Please try again.";
                     }
                 } else {
-                    // Rollback transaction
                     $db->rollback();
                     $errors["idUpload"] = "Error uploading ID. Please try again.";
                 }
             }
             
-            // Close the database connection
             $db->closeConnection();
             
         } catch (Exception $e) {
@@ -547,10 +535,8 @@ function test_input($data) {
         </div>
     </footer>
 
-    <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Script to handle the "Send Code" button
         document.getElementById('sendCodeBtn').addEventListener('click', function() {
             const email = document.getElementById('email').value;
             const loading = document.getElementById('loading');
@@ -747,7 +733,6 @@ function test_input($data) {
                 this.classList.add('is-valid');
             } else {
                 this.classList.remove('is-valid');
-                // Don't add 'is-invalid' here to avoid showing the error too early
             }
         });
 
