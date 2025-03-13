@@ -1,32 +1,25 @@
 <?php
-// Start session securely
 session_start();
 
-// Database connection parameters
 $servername = "localhost"; 
 $username = "root"; 
 $password = ""; 
 $dbname = "barangay_request_system"; 
 
-// Initialize variables
 $email = "";
 $errors = [];
 $showAlert = false;
 $alertType = "";
 $alertMessage = "";
 
-// Check if user is logged in but account might have been deleted
 if (isset($_SESSION['user_id'])) {
-    // Create database connection
     $conn = new mysqli($servername, $username, $password, $dbname);
     
-    // Check connection
     if ($conn->connect_error) {
         error_log("Connection failed: " . $conn->connect_error);
     } else {
         $userId = $_SESSION['user_id'];
         
-        // Check if user still exists in database
         $stmt = $conn->prepare("SELECT user_id FROM users WHERE user_id = ?");
         $stmt->bind_param("i", $userId);
         $stmt->execute();
@@ -47,7 +40,6 @@ if (isset($_SESSION['user_id'])) {
     }
 }
 
-// Redirect logged-in users to dashboard
 if (isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
     exit();
@@ -80,7 +72,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Proceed if no validation errors
     if (empty($errors)) {
-        // Create database connection
         $conn = new mysqli($servername, $username, $password, $dbname);
         
         // Check connection
@@ -90,7 +81,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $alertType = "danger";
             $alertMessage = "An unexpected error occurred. Please try again later.";
         } else {
-            // Prepare SQL statement to get user data including status
             $stmt = $conn->prepare("SELECT user_id, email, password, first_name, last_name, user_type, status FROM users WHERE email = ?");
             $stmt->bind_param("s", $email);
             $stmt->execute();
@@ -113,7 +103,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
                 // Verify password for active accounts
                 else if ($user['status'] == 'active' && password_verify($_POST["password"], $user['password'])) {
-                    // Password is correct, regenerate session ID for security
                     session_regenerate_id(true);
 
                     // Store user details in session
@@ -127,7 +116,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $user_id = $user['user_id'];
                     $action = 'login';
                     
-                    // Create user_logs table if it doesn't exist
                     try {
                         $log_stmt = $conn->prepare("INSERT INTO user_logs (user_id, action, ip_address) VALUES (?, ?, ?)");
                         $log_stmt->bind_param("iss", $user_id, $action, $ip_address);
@@ -147,11 +135,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         error_log("Warning: Could not update last login time: " . $e->getMessage());
                     }
 
-                    // Close the connection
                     $stmt->close();
                     $conn->close();
 
-                    // Redirect to dashboard
                     header("Location: dashboard.php");
                     exit();
                 } else {
@@ -171,14 +157,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 sleep(1); // Delay to prevent brute force
             }
             
-            // Close the connection
             $stmt->close();
             $conn->close();
         }
     }
 }
 
-// Helper function to sanitize input
 function sanitize_input($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }

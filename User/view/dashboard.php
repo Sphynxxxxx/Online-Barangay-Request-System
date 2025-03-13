@@ -2,35 +2,29 @@
 require_once dirname(__DIR__, 2) . "/backend/connections/config.php";
 require_once dirname(__DIR__, 2) . "/backend/connections/database.php";
 
-// Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Check if user is logged in
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type'])) {
-    // Not logged in, redirect to login page
     header("Location: login.php");
     exit();
 }
 
-// Get user information
 $userId = $_SESSION['user_id'];
 $userType = $_SESSION['user_type'];
 $userName = isset($_SESSION['name']) ? $_SESSION['name'] : 'User';
 
-// Initialize variables
 $pendingRequests = 0;
 $completedRequests = 0;
 $rejectedRequests = 0;
 $notifications = [];
 $recentRequests = [];
+$unreadCount = 0;
 
 try {
-    // Create database connection
     $db = new Database();
     
-    // Get request statistics
     if ($userType == 'resident') {
         // For residents, get only their requests
         $statsSql = "SELECT 
@@ -56,8 +50,15 @@ try {
                     ORDER BY created_at DESC 
                     LIMIT 5";
         $notifications = $db->fetchAll($notifSql, [$userId]);
+        
+        // Count unread notifications
+        $unreadNotifSql = "SELECT COUNT(*) as unread_count 
+                          FROM notifications 
+                          WHERE user_id = ? AND is_read = 0";
+        $unreadNotifications = $db->fetchOne($unreadNotifSql, [$userId]);
+        $unreadCount = $unreadNotifications['unread_count'] ?? 0;
     } else {
-        // For admin/staff, get all requests
+        // For admin/staff, get all requests (optional and for incase of changes)
         $statsSql = "SELECT 
                         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
                         SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
@@ -90,14 +91,12 @@ try {
         $rejectedRequests = $stats['rejected'] ?? 0;
     }
     
-    // Close the database connection
     $db->closeConnection();
     
 } catch (Exception $e) {
     error_log("Dashboard Error: " . $e->getMessage());
 }
 
-// Get success message if exists
 $successMsg = '';
 if (isset($_SESSION['success_msg'])) {
     $successMsg = $_SESSION['success_msg'];
@@ -273,9 +272,9 @@ if (isset($_SESSION['success_msg'])) {
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-bell"></i>
-                                <?php if (count($notifications) > 0): ?>
+                                <?php if ($unreadCount > 0): ?>
                                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge">
-                                    <?php echo count($notifications); ?>
+                                    <?php echo $unreadCount; ?>
                                 </span>
                                 <?php endif; ?>
                             </a>
@@ -284,7 +283,11 @@ if (isset($_SESSION['success_msg'])) {
                                 <?php if (empty($notifications)): ?>
                                 <li><span class="dropdown-item text-muted">No notifications</span></li>
                                 <?php else: ?>
-                                    <?php foreach ($notifications as $notification): ?>
+                                    <?php 
+                                    $count = 0;
+                                    foreach ($notifications as $notification): 
+                                        if ($count < 5):
+                                    ?>
                                     <li>
                                         <a class="dropdown-item <?php echo $notification['is_read'] ? '' : 'unread'; ?>" href="notifications.php?id=<?php echo $notification['notification_id']; ?>">
                                             <div class="d-flex w-100 justify-content-between">
@@ -294,7 +297,11 @@ if (isset($_SESSION['success_msg'])) {
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <?php endforeach; ?>
+                                    <?php 
+                                        endif;
+                                        $count++;
+                                    endforeach; 
+                                    ?>
                                 <li><a class="dropdown-item text-primary" href="notifications.php">View all notifications</a></li>
                                 <?php endif; ?>
                             </ul>
@@ -555,7 +562,6 @@ if (isset($_SESSION['success_msg'])) {
         </div>
     </footer>
 
-    <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
         // Auto-dismiss alerts after 5 seconds

@@ -1,10 +1,8 @@
 <?php
-// Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Get the data from the request
 $data = json_decode(file_get_contents("php://input"), true);
 
 if (isset($data['email']) && isset($data['code'])) {

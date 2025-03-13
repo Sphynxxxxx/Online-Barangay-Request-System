@@ -6,13 +6,11 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Ensure user is logged in
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'resident') {
     header("Location: login.php");
     exit();
 }
 
-// Check if request ID is provided
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['request_id'])) {
     $requestId = intval($_POST['request_id']);
     $userId = $_SESSION['user_id'];

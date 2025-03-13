@@ -2,24 +2,19 @@
 require_once dirname(__DIR__, 2) . "/backend/connections/config.php";
 require_once dirname(__DIR__, 2) . "/backend/connections/database.php";
 
-// Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Check if user is logged in
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type'])) {
-    // Not logged in, redirect to login page
     header("Location: login.php");
     exit();
 }
 
-// Get user information
 $userId = $_SESSION['user_id'];
 $userType = $_SESSION['user_type'];
 $userName = isset($_SESSION['name']) ? $_SESSION['name'] : 'User';
 
-// Redirect admin/staff to appropriate page
 if ($userType != 'resident') {
     header("Location: dashboard.php");
     exit();
@@ -84,10 +79,10 @@ $documentFees = [
     'certificate_residency' => 30.00,
     'business_permit' => 200.00,
     'good_moral' => 50.00,
-    'indigency_certificate' => 0.00, // Usually free
+    'indigency_certificate' => 0.00, 
     'cedula' => 100.00,
     'solo_parent' => 50.00,
-    'first_time_jobseeker' => 0.00 // Usually free under First Time Jobseekers Act
+    'first_time_jobseeker' => 0.00 
 ];
 
 $documentPurposes = [
@@ -164,19 +159,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // If all validations pass, save to database
     if (empty($formErrors)) {
         try {
-            // Create database connection
             $db = new Database();
             
-            // Set the purpose text
             $purposeText = ($purpose === 'others') ? $purposeOther : $documentPurposes[$purpose];
             
-            // Calculate processing fee
             $processingFee = $documentFees[$docType];
             if ($urgentRequest) {
                 $processingFee *= 1.5; // 50% additional fee for urgent requests
             }
             
-            // Prepare query to insert the request
             $sql = "INSERT INTO requests (user_id, document_type, purpose, urgent_request, processing_fee, status, created_at) 
                    VALUES (?, ?, ?, ?, ?, 'pending', NOW())";
             
@@ -184,7 +175,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $db->execute($sql, $params);
             
             if ($result) {
-                // Get the last insert ID using a direct query instead of the method
                 $lastIdSql = "SELECT LAST_INSERT_ID() as id";
                 $lastIdResult = $db->fetchOne($lastIdSql);
                 $requestId = $lastIdResult['id'];
@@ -219,7 +209,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Set success message and redirect
                 $_SESSION['success_msg'] = "Your request for " . $documentTypes[$docType] . " has been submitted successfully. Request ID: #$requestId";
                 
-                // Close the connection
                 $db->closeConnection();
                 
                 // Redirect to view the request
@@ -229,7 +218,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $formErrors[] = "Failed to submit your request. Please try again.";
             }
             
-            // Close the connection
             $db->closeConnection();
             
         } catch (Exception $e) {
@@ -242,18 +230,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get notifications for the navigation bar
 $notifications = [];
 try {
-    // Create database connection
     $db = new Database();
     
     // Get notifications
+    // Get notifications
     $notifSql = "SELECT notification_id, message, is_read, created_at 
-                FROM notifications 
-                WHERE user_id = ? 
-                ORDER BY created_at DESC 
-                LIMIT 5";
+        FROM notifications 
+        WHERE user_id = ? 
+        ORDER BY created_at DESC 
+        LIMIT 5";
     $notifications = $db->fetchAll($notifSql, [$userId]);
+
+    // Count unread notifications
+    $unreadNotifSql = "SELECT COUNT(*) as unread_count 
+            FROM notifications 
+            WHERE user_id = ? AND is_read = 0";
+    $unreadNotifications = $db->fetchOne($unreadNotifSql, [$userId]);
+    $unreadCount = $unreadNotifications['unread_count'] ?? 0;
     
-    // Close the connection
     $db->closeConnection();
     
 } catch (Exception $e) {
@@ -387,6 +381,11 @@ try {
                         <li class="nav-item">
                             <a class="nav-link" href="my-requests.php">My Requests</a>
                         </li>
+                        <?php if ($userType != 'resident'): ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="manage-requests.php">Manage Requests</a>
+                        </li>
+                        <?php endif; ?>
                         <li class="nav-item">
                             <a class="nav-link" href="profile.php">My Profile</a>
                         </li>
@@ -395,9 +394,9 @@ try {
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-bell"></i>
-                                <?php if (count($notifications) > 0): ?>
+                                <?php if ($unreadCount > 0): ?>
                                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge">
-                                    <?php echo count($notifications); ?>
+                                    <?php echo $unreadCount; ?>
                                 </span>
                                 <?php endif; ?>
                             </a>
@@ -406,7 +405,11 @@ try {
                                 <?php if (empty($notifications)): ?>
                                 <li><span class="dropdown-item text-muted">No notifications</span></li>
                                 <?php else: ?>
-                                    <?php foreach ($notifications as $notification): ?>
+                                    <?php 
+                                    $count = 0;
+                                    foreach ($notifications as $notification): 
+                                        if ($count < 5):
+                                    ?>
                                     <li>
                                         <a class="dropdown-item <?php echo $notification['is_read'] ? '' : 'unread'; ?>" href="notifications.php?id=<?php echo $notification['notification_id']; ?>">
                                             <div class="d-flex w-100 justify-content-between">
@@ -416,7 +419,11 @@ try {
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <?php endforeach; ?>
+                                    <?php 
+                                        endif;
+                                        $count++;
+                                    endforeach; 
+                                    ?>
                                 <li><a class="dropdown-item text-primary" href="notifications.php">View all notifications</a></li>
                                 <?php endif; ?>
                             </ul>
@@ -467,6 +474,7 @@ try {
             <?php endif; ?>
             
             <form action="request-document.php" method="post" id="requestForm">
+
                 <!-- Document Type Selection -->
                 <h4 class="mb-4"><i class="bi bi-file-earmark me-2"></i>Step 1: Select Document Type</h4>
                 <div class="row mb-5">
@@ -550,6 +558,7 @@ try {
                     <h4 class="mb-4"><i class="bi bi-info-circle me-2"></i>Step 3: Request Details</h4>
                     <div class="card">
                         <div class="card-body">
+
                             <!-- Additional fields for Barangay Clearance only -->
                             <div id="barangayClearanceFields" class="<?php echo ($selectedDocType !== 'barangay_clearance') ? 'd-none' : ''; ?>">
                                 <h5 class="mb-3">Personal Information</h5>
@@ -694,7 +703,6 @@ try {
         </div>
     </footer>
 
-    <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {

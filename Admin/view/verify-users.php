@@ -203,6 +203,9 @@ if ($conn->connect_error) {
             <a href="manage-users.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-people me-2"></i> Manage Users
             </a>
+            <a href="announcements.php" class="d-block text-decoration-none text-white sidebar-item">
+                <i class="bi bi-megaphone me-2"></i> Announcements
+            </a>
             <a href="reports.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-graph-up me-2"></i> Reports
             </a>

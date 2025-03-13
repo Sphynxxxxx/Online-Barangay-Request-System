@@ -246,7 +246,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $db->closeConnection();
             
         } catch (Exception $e) {
-            // Rollback transaction if active
             if (isset($db) && $db->inTransaction()) {
                 $db->rollback();
             }
@@ -257,7 +256,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// Helper function to sanitize form inputs
 function test_input($data) {
     $data = trim($data);
     $data = stripslashes($data);
@@ -443,6 +441,8 @@ function test_input($data) {
                                                 <option value="zone3" <?php echo $zone === 'zone3' ? 'selected' : ''; ?>>Zone 3</option>
                                                 <option value="zone4" <?php echo $zone === 'zone4' ? 'selected' : ''; ?>>Zone 4</option>
                                                 <option value="zone5" <?php echo $zone === 'zone5' ? 'selected' : ''; ?>>Zone 5</option>
+                                                <option value="zone5" <?php echo $zone === 'zone5' ? 'selected' : ''; ?>>Zone 6</option>
+                                                <option value="zone5" <?php echo $zone === 'zone5' ? 'selected' : ''; ?>>Zone 7</option>
                                             </select>
                                             <?php if (isset($errors['zone'])): ?>
                                                 <div class="invalid-feedback"><?php echo $errors['zone']; ?></div>
@@ -575,7 +575,7 @@ function test_input($data) {
                 if (loading) loading.style.display = 'none';
                 
                 if (data.success) {
-                    // Store the code in sessionStorage for verification with expiration time (30 minutes)
+                    // verification with expiration time (30 minutes)
                     const expirationTime = Date.now() + (30 * 60 * 1000);
                     sessionStorage.setItem('verificationCode', code);
                     sessionStorage.setItem('verificationEmail', email);
@@ -699,15 +699,12 @@ function test_input($data) {
                 const timeLeft = Math.round((parseInt(expirationTime) - currentTime) / 1000);
                 
                 if (timeLeft > 0) {
-                    // There's still time left, start the countdown
                     startVerificationCountdown();
                 } else {
-                    // Code has expired, clear the data
                     sessionStorage.removeItem('verificationCode');
                     sessionStorage.removeItem('verificationEmail');
                     sessionStorage.removeItem('verificationExpires');
                     
-                    // Clear server-side session too
                     fetch('clear_verification.php', {
                         method: 'POST'
                     });

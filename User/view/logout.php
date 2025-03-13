@@ -1,10 +1,8 @@
 <?php
-// Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Log the logout activity if user was logged in
 if (isset($_SESSION['user_id'])) {
     // Optional: Log the logout to database
     try {
@@ -26,10 +24,8 @@ if (isset($_SESSION['user_id'])) {
     }
 }
 
-// Clear all session variables
 $_SESSION = array();
 
-// If a session cookie is used, destroy that too
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
     setcookie(session_name(), '', time() - 42000,
@@ -38,11 +34,9 @@ if (ini_get("session.use_cookies")) {
     );
 }
 
-// Destroy the session
 session_destroy();
 
-// Redirect to login page with a message
-session_start(); // Start new session for the message
+session_start();
 $_SESSION['success_msg'] = "You have been successfully logged out.";
 header("Location: login.php");
 exit();

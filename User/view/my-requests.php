@@ -86,12 +86,20 @@ try {
     $db = new Database();
     
     // Get notifications
+    // Get notifications
     $notifSql = "SELECT notification_id, message, is_read, created_at 
-                FROM notifications 
-                WHERE user_id = ? 
-                ORDER BY created_at DESC 
-                LIMIT 5";
+        FROM notifications 
+        WHERE user_id = ? 
+        ORDER BY created_at DESC 
+        LIMIT 5";
     $notifications = $db->fetchAll($notifSql, [$userId]);
+
+    // Count unread notifications
+    $unreadNotifSql = "SELECT COUNT(*) as unread_count 
+            FROM notifications 
+            WHERE user_id = ? AND is_read = 0";
+    $unreadNotifications = $db->fetchOne($unreadNotifSql, [$userId]);
+    $unreadCount = $unreadNotifications['unread_count'] ?? 0;
     
     $db->closeConnection();
     
@@ -251,6 +259,11 @@ try {
                         <li class="nav-item">
                             <a class="nav-link active" href="my-requests.php">My Requests</a>
                         </li>
+                        <?php if ($userType != 'resident'): ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="manage-requests.php">Manage Requests</a>
+                        </li>
+                        <?php endif; ?>
                         <li class="nav-item">
                             <a class="nav-link" href="profile.php">My Profile</a>
                         </li>
@@ -259,9 +272,9 @@ try {
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-bell"></i>
-                                <?php if (count($notifications) > 0): ?>
+                                <?php if ($unreadCount > 0): ?>
                                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge">
-                                    <?php echo count($notifications); ?>
+                                    <?php echo $unreadCount; ?>
                                 </span>
                                 <?php endif; ?>
                             </a>
@@ -270,7 +283,11 @@ try {
                                 <?php if (empty($notifications)): ?>
                                 <li><span class="dropdown-item text-muted">No notifications</span></li>
                                 <?php else: ?>
-                                    <?php foreach ($notifications as $notification): ?>
+                                    <?php 
+                                    $count = 0;
+                                    foreach ($notifications as $notification): 
+                                        if ($count < 5):
+                                    ?>
                                     <li>
                                         <a class="dropdown-item <?php echo $notification['is_read'] ? '' : 'unread'; ?>" href="notifications.php?id=<?php echo $notification['notification_id']; ?>">
                                             <div class="d-flex w-100 justify-content-between">
@@ -280,7 +297,11 @@ try {
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <?php endforeach; ?>
+                                    <?php 
+                                        endif;
+                                        $count++;
+                                    endforeach; 
+                                    ?>
                                 <li><a class="dropdown-item text-primary" href="notifications.php">View all notifications</a></li>
                                 <?php endif; ?>
                             </ul>
@@ -498,3 +519,4 @@ try {
     </script>
 </body>
 </html>
+

@@ -15,65 +15,69 @@ if ($conn->connect_error) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $punong_barangay = trim($conn->real_escape_string($_POST['punong_barangay']));
-    $sk_chairperson = trim($conn->real_escape_string($_POST['sk_chairperson']));
-    $barangay_secretary = trim($conn->real_escape_string($_POST['barangay_secretary']));
-    $barangay_treasurer = trim($conn->real_escape_string($_POST['barangay_treasurer']));
-    $other_official = trim($conn->real_escape_string($_POST['other_official']));
+    // Sanitize input
+    $official_names = isset($_POST['official_names']) ? $_POST['official_names'] : [];
+    $official_positions = isset($_POST['official_positions']) ? $_POST['official_positions'] : [];
     $request_id = intval($_POST['request_id']);
 
-    // Check if a record already exists
-    $checkSql = "SELECT COUNT(*) as count FROM barangay_officials";
-    $result = $conn->query($checkSql);
-    $row = $result->fetch_assoc();
+    $conn->begin_transaction();
 
-    if ($row['count'] > 0) {
-        // Update existing record
-        $sql = "UPDATE barangay_officials 
-                SET punong_barangay = ?, 
-                    sk_chairperson = ?, 
-                    barangay_secretary = ?, 
-                    barangay_treasurer = ?, 
-                    other_official = ?";
-        
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param(
-            "sssss", 
-            $punong_barangay, 
-            $sk_chairperson, 
-            $barangay_secretary, 
-            $barangay_treasurer, 
-            $other_official
-        );
-    } else {
-        // Insert new record
-        $sql = "INSERT INTO barangay_officials 
-                (punong_barangay, sk_chairperson, barangay_secretary, barangay_treasurer, other_official) 
-                VALUES (?, ?, ?, ?, ?)";
-        
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param(
-            "sssss", 
-            $punong_barangay, 
-            $sk_chairperson, 
-            $barangay_secretary, 
-            $barangay_treasurer, 
-            $other_official
-        );
-    }
+    try {
+        $clearSql = "DELETE FROM barangay_officials";
+        if (!$conn->query($clearSql)) {
+            throw new Exception("Failed to clear existing officials: " . $conn->error);
+        }
 
-    if ($stmt->execute()) {
-        $_SESSION['success_msg'] = "Barangay Officials updated successfully.";
-    } else {
-        $_SESSION['error_msg'] = "Error updating Barangay Officials: " . $stmt->error;
+        $insertSql = "INSERT INTO barangay_officials (name, position) VALUES (?, ?)";
+        $stmt = $conn->prepare($insertSql);
+
+        if (!$stmt) {
+            throw new Exception("Failed to prepare insert statement: " . $conn->error);
+        }
+
+        // Insert new officials
+        $insertedOfficials = 0;
+        foreach ($official_names as $index => $name) {
+            // Trim and sanitize input
+            $sanitizedName = trim($name);
+            $sanitizedPosition = trim($official_positions[$index]);
+
+            // Only insert if both name and position are not empty
+            if (!empty($sanitizedName) && !empty($sanitizedPosition)) {
+                $stmt->bind_param("ss", $sanitizedName, $sanitizedPosition);
+                
+                if (!$stmt->execute()) {
+                    throw new Exception("Failed to insert official: " . $stmt->error);
+                }
+                
+                $insertedOfficials++;
+            }
+        }
+
+        // Commit transaction
+        if (!$conn->commit()) {
+            throw new Exception("Failed to commit transaction: " . $conn->error);
+        }
+
+        // Set success message
+        if ($insertedOfficials > 0) {
+            $_SESSION['success_msg'] = "$insertedOfficials Barangay Official(s) updated successfully.";
+        } else {
+            $_SESSION['error_msg'] = "No officials were added. Please check your input.";
+        }
+    } catch (Exception $e) {
+        // Rollback transaction
+        $conn->rollback();
+        $_SESSION['error_msg'] = "Error updating Barangay Officials: " . $e->getMessage();
     }
 
     $stmt->close();
+    $conn->close();
+
+    header("Location: edit-brgyclearance.php?id=" . $request_id);
+    exit();
 } else {
     $_SESSION['error_msg'] = "Invalid request method.";
+    header("Location: edit-brgyclearance.php");
+    exit();
 }
-
-$conn->close();
-
-header("Location: edit-brgyclearance.php?id=" . $request_id);
-exit();

@@ -1,15 +1,12 @@
 <?php
-// Start session securely
 session_start();
 
-// Database connection parameters
 $servername = "localhost"; 
 $username = "root"; 
 $password = ""; 
 $dbname = "barangay_request_system"; 
 
 
-// Initialize variables
 $showAlert = false;
 $alertType = "";
 $alertMessage = "";
@@ -20,16 +17,13 @@ $completedRequests = 0;
 $recentUsers = [];
 $recentRequests = [];
 
-// Create database connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
 if ($conn->connect_error) {
     $showAlert = true;
     $alertType = "danger";
     $alertMessage = "Database connection failed: " . $conn->connect_error;
 } else {
-    // Get user statistics
     $userStatsSql = "SELECT 
                     SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
                     SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
@@ -43,7 +37,6 @@ if ($conn->connect_error) {
         $inactiveUsers = $userStatsRow['inactive'] ?? 0;
     }
     
-    // Get document request statistics (if requests table exists)
     try {
         $requestStatsSql = "SELECT 
                           COUNT(*) as total_requests,
@@ -58,7 +51,6 @@ if ($conn->connect_error) {
             $completedRequests = $requestStatsRow['completed'] ?? 0;
         }
     } catch (Exception $e) {
-        // Requests table might not exist yet
         $totalRequests = 0;
         $pendingRequests = 0;
         $completedRequests = 0;
@@ -92,7 +84,6 @@ if ($conn->connect_error) {
             }
         }
     } catch (Exception $e) {
-        // Requests table might not exist yet
     }
     
     // Handle approval/rejection actions
@@ -111,7 +102,7 @@ if ($conn->connect_error) {
             $showAlert = true;
             $alertType = "danger";
             $alertMessage = "Invalid action.";
-            goto SkipAction; // Skip further processing
+            goto SkipAction; 
         }
         
         // Prepare and execute update statement
@@ -123,24 +114,20 @@ if ($conn->connect_error) {
             $alertType = "success";
             $alertMessage = "User has been successfully $actionText.";
             
-            // We're removing the admin logging functionality since it requires an account
         } else {
             $showAlert = true;
             $alertType = "danger";
             $alertMessage = "Error updating user: " . $stmt->error;
         }
         
-        // Close statement
         $stmt->close();
         
-        // Refresh page data
         header("Location: admin.php");
         exit();
     }
     
     SkipAction:
     
-    // Close connection
     $conn->close();
 }
 
@@ -281,6 +268,9 @@ if (isset($_SESSION['success_msg'])) {
             </a>
             <a href="reports.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-graph-up me-2"></i> Reports
+            </a>
+            <a href="Admin/view/announcements.php" class="d-block text-decoration-none text-white sidebar-item">
+                <i class="bi bi-megaphone me-2"></i> Announcements
             </a>
             <a href="system-logs.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-journal-text me-2"></i> System Logs
@@ -566,7 +556,6 @@ if (isset($_SESSION['success_msg'])) {
         </div>
     </div>
 
-    <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

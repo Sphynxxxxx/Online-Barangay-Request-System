@@ -454,8 +454,14 @@ $documentTypes = [
                                 </li>
                                 <li class="list-group-item">
                                     <div class="d-flex justify-content-between">
-                                        <span><i class="bi bi-geo-alt me-2"></i>Address</span>
-                                        <span class="text-end"><?php echo htmlspecialchars($userDetails['address'] ?? 'Not provided'); ?></span>
+                                        <span><i class="bi bi-geo-alt me-2"></i>Zone</span>
+                                        <span class="text-end"><?php echo htmlspecialchars($userDetails['zone'] ?? 'Not provided'); ?></span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between">
+                                        <span><i class="bi bi-house me-2"></i>House Number</span>
+                                        <span class="text-end"><?php echo htmlspecialchars($userDetails['house_number'] ?? 'Not provided'); ?></span>
                                     </div>
                                 </li>
                             </ul>

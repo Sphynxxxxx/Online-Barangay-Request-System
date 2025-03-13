@@ -6,18 +6,15 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Check if user is logged in
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type'])) {
     header("Location: login.php");
     exit();
 }
 
-// Get user information
 $userId = $_SESSION['user_id'];
 $userType = $_SESSION['user_type'];
 $userName = isset($_SESSION['name']) ? $_SESSION['name'] : 'User';
 
-// Redirect admin/staff to appropriate page
 if ($userType != 'resident') {
     header("Location: dashboard.php");
     exit();
@@ -52,7 +49,6 @@ try {
         exit();
     }
     
-    // For Barangay Clearance, get additional details
     if ($request['document_type'] === 'barangay_clearance') {
         $detailsSql = "SELECT * FROM request_details WHERE request_id = ?";
         $requestDetails = $db->fetchOne($detailsSql, [$requestId]);
@@ -703,7 +699,6 @@ if (isset($_SESSION['error_msg'])) {
         </div>
     </footer>
 
-    <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {

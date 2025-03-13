@@ -13,22 +13,18 @@ $requestDetails = null;
 $clearanceDetails = null;
 $officials = null;
 
-// Create database connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Check if request ID is provided
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     die("Invalid request ID.");
 }
 
 $requestId = intval($_GET['id']);
 
-// Fetch request details with request_details
 $requestSql = "SELECT r.*, rd.*, r.document_type, r.purpose
                FROM requests r
                JOIN request_details rd ON r.request_id = rd.request_id
@@ -46,13 +42,11 @@ if ($result->num_rows > 0) {
 }
 
 // Fetch Barangay Officials
-$officialsSql = "SELECT * FROM barangay_officials LIMIT 1";
+$officialsSql = "SELECT * FROM barangay_officials ORDER BY id";
 $officialsResult = $conn->query($officialsSql);
-$officials = $officialsResult ? $officialsResult->fetch_assoc() : null;
+$officials = $officialsResult->fetch_all(MYSQLI_ASSOC);
 
-// Check if clearance details exist or submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Process form submission
     $name = $_POST['name'] ?? $requestDetails['fullname'];
     $address = $_POST['address'] ?? $requestDetails['address'];
     $age = $_POST['age'] ?? $requestDetails['age'];
@@ -61,7 +55,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $purpose = $requestDetails['purpose'];
     $issuedDate = $_POST['issued_date'] ?? date('Y-m-d');
     
-    // Prepare SQL to update request_details
     $updateSql = "UPDATE request_details 
                   SET fullname = ?, 
                       age = ?, 
@@ -81,7 +74,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $alertType = "success";
         $alertMessage = "Clearance details updated successfully.";
         
-        // Refresh details
         $stmt = $conn->prepare($requestSql);
         $stmt->bind_param("i", $requestId);
         $stmt->execute();
@@ -273,93 +265,77 @@ $conn->close();
                         <i class="bi bi-people me-2"></i>Edit Barangay Officials
                     </div>
                     <div class="card-body py-2">
-                        <form method="POST" action="update-officials.php">
+                        <form id="officialsForm" method="POST" action="update-officials.php">
                             <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
                             
-                            <div class="row g-2">
-                                <div class="col-12 mb-1">
-                                    <label class="form-label">Punong Barangay</label>
-                                    <input type="text" class="form-control form-control-sm" name="punong_barangay" 
-                                        value="<?php echo htmlspecialchars($officials['punong_barangay'] ?? 'REMEDIOS S. BEDIA'); ?>" 
-                                        placeholder="Enter Punong Barangay Name">
+                            <!-- Container for dynamic officials -->
+                            <div id="officialsContainer">
+                                <!-- Predefined Officials -->
+                                <div class="row g-2 official-row mb-2">
+                                <div class="col-7">
+                                    <input type="text" class="form-control form-control-sm" name="official_names[]" 
+                                        placeholder="Official Name">
                                 </div>
-                                
-                                <div class="col-6 mb-1">
-                                    <label class="form-label">SK Chairperson</label>
-                                    <input type="text" class="form-control form-control-sm" name="sk_chairperson" 
-                                        value="<?php echo htmlspecialchars($officials['sk_chairperson'] ?? ''); ?>" 
-                                        placeholder="SK Chairperson">
+                                    <div class="col-4">
+                                        <select class="form-select form-select-sm" name="official_positions[]">
+                                            <option value="Punong Barangay" selected>Punong Barangay</option>
+                                            <option value="Sangguniang Barangay Member">Sangguniang Barangay Member</option>
+                                            <option value="SK Chairman">SK Chairman</option>
+                                            <option value="Barangay Treasurer">Barangay Treasurer</option>
+                                            <option value="Barangay Secretary">Barangay Secretary</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-1">
+                                        <button type="button" class="btn btn-danger btn-sm w-100 remove-official" disabled>
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                
-                                <div class="col-6 mb-1">
-                                    <label class="form-label">Barangay Secretary</label>
-                                    <input type="text" class="form-control form-control-sm" name="barangay_secretary" 
-                                        value="<?php echo htmlspecialchars($officials['barangay_secretary'] ?? ''); ?>" 
-                                        placeholder="Barangay Secretary">
+                            </div>                            
+                            <button type="button" id="addOfficialBtn" class="btn btn-success btn-sm w-100 mt-2">
+                                <i class="bi bi-plus me-1"></i>Add Official
+                            </button>
+
+                            <div class="row g-2 mt-2">
+                                <div class="col-6">
+                                    <button type="button" id="clearOfficialsBtn" class="btn btn-warning btn-sm w-100">
+                                        <i class="bi bi-trash me-1"></i>Clear List
+                                    </button>
                                 </div>
-                                
-                                <div class="col-6 mb-1">
-                                    <label class="form-label">Barangay Treasurer</label>
-                                    <input type="text" class="form-control form-control-sm" name="barangay_treasurer" 
-                                        value="<?php echo htmlspecialchars($officials['barangay_treasurer'] ?? ''); ?>" 
-                                        placeholder="Barangay Treasurer">
-                                </div>
-                                
-                                <div class="col-6 mb-1">
-                                    <label class="form-label">Other Official</label>
-                                    <input type="text" class="form-control form-control-sm" name="other_official" 
-                                        value="<?php echo htmlspecialchars($officials['other_official'] ?? ''); ?>" 
-                                        placeholder="Other Official">
+                                <div class="col-6">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                                        <i class="bi bi-save me-1"></i>Save Officials
+                                    </button>
                                 </div>
                             </div>
-                            
-                            <button type="submit" class="btn btn-info btn-sm w-100 mt-2 text-white">
-                                <i class="bi bi-save me-1"></i>Update Officials
-                            </button>
+
                         </form>
                     </div>
                 </div>
-                
             </div>
-
-            
 
             <!-- Clearance Preview Container -->
             <div class="col-md-8">
                 <div class="row">
-                    <!-- Barangay Officials Side Panel - Moved to the left -->
                     <div class="col-md-4 mt-4 no-print">
                         <div class="card h-100">
                             <div class="card-header bg-secondary text-white">
                                 <i class="bi bi-people me-2"></i>Barangay Officials
                             </div>
-                            <div class="card-body">
-                                <?php if ($officials): ?>
-                                    <ul class="list-unstyled">
-                                        <?php 
-                                        $officialRoles = [
-                                            'punong_barangay' => 'Punong Barangay',
-                                            'sk_chairperson' => 'SK Chairperson',
-                                            'barangay_secretary' => 'Barangay Secretary',
-                                            'barangay_treasurer' => 'Barangay Treasurer',
-                                            'other_official' => 'Other Official'
-                                        ];
-
-                                        foreach ($officialRoles as $key => $label):
-                                            if (!empty($officials[$key])):
-                                        ?>
-                                        <li class="mb-2">
-                                            <strong><?php echo $label; ?>:</strong><br>
-                                            <?php echo htmlspecialchars($officials[$key]); ?>
-                                        </li>
-                                        <?php 
-                                            endif;
-                                        endforeach; 
-                                        ?>
-                                    </ul>
-                                <?php else: ?>
-                                    <p class="text-muted text-center">No officials information available.</p>
-                                <?php endif; ?>
+                            <div class="card-body" data-officials-list>
+                            <?php if (!empty($officials)): ?>
+                                <ul class="list-unstyled">
+                                    <?php foreach ($officials as $official): ?>
+                                    <li class="mb-2">
+                                        <strong><?php echo htmlspecialchars($official['name']); ?></strong><br>
+                                        <?php echo htmlspecialchars($official['position']); ?>:
+                                    </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php else: ?>
+                                <p class="text-muted text-center">No officials information available.</p>
+                            <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -370,34 +346,14 @@ $conn->close();
                             <div class="certificate-container">
                                 <!-- Officials Section for Print -->
                                 <div class="officials-section print-only">
-                                    <?php 
-                                    $officialFields = [
-                                        'punong_barangay' => 'Punong Barangay',
-                                        'sk_chairperson' => 'SK Chairperson',
-                                        'barangay_secretary' => 'Barangay Secretary',
-                                        'barangay_treasurer' => 'Barangay Treasurer',
-                                        'other_official' => 'Other Official'
-                                    ];
-
-                                    $hasOfficials = false;
-                                    foreach ($officialFields as $field => $label) {
-                                        if (!empty($officials[$field])) {
-                                            $hasOfficials = true;
-                                            break;
-                                        }
-                                    }
-
-                                    if ($hasOfficials): 
-                                    ?>
+                                    <?php if (!empty($officials)): ?>
                                         <h5 class="text-center">Barangay Officials</h5>
                                         <ul class="list-unstyled">
-                                            <?php foreach ($officialFields as $field => $label): ?>
-                                                <?php if (!empty($officials[$field])): ?>
-                                                <li class="mb-3">
-                                                    <strong><?php echo $label; ?></strong><br>
-                                                    <?php echo htmlspecialchars($officials[$field]); ?>
-                                                </li>
-                                                <?php endif; ?>
+                                            <?php foreach ($officials as $official): ?>
+                                            <li class="mb-3">
+                                                <strong><?php echo htmlspecialchars($official['name']); ?></strong><br>
+                                                <?php echo htmlspecialchars($official['position']); ?>:
+                                            </li>
                                             <?php endforeach; ?>
                                         </ul>
                                     <?php endif; ?>
@@ -474,11 +430,200 @@ $conn->close();
 
         </div>
     </div>
-
-
-
-    
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const officialsContainer = document.getElementById('officialsContainer');
+            const addOfficialBtn = document.getElementById('addOfficialBtn');
+            const officialsForm = document.getElementById('officialsForm');
+            const clearOfficialsBtn = document.getElementById('clearOfficialsBtn');
+
+            // Function to create a new official row
+            function createOfficialRow() {
+                const row = document.createElement('div');
+                row.className = 'row g-2 official-row mb-2';
+                row.innerHTML = `
+                    <div class="col-7">
+                        <input type="text" class="form-control form-control-sm" name="official_names[]" 
+                            placeholder="Official Name" required>
+                    </div>
+                    <div class="col-4">
+                        <select class="form-select form-select-sm" name="official_positions[]" required>
+                            <option value="">Select Position</option>
+                            <option value="Punong Barangay">Punong Barangay</option>
+                            <option value="Sangguniang Barangay Member">Sangguniang Barangay Member</option>
+                            <option value="SK Chairman">SK Chairman</option>
+                            <option value="Barangay Treasurer">Barangay Treasurer</option>
+                            <option value="Barangay Secretary">Barangay Secretary</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-danger btn-sm w-100 remove-official">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                `;
+
+                return row;
+            }
+
+            // Function to update officials panel
+            function updateOfficialsPanel() {
+                const officialsPanelList = document.querySelector('[data-officials-list]');
+                const listContainer = document.createElement('ul');
+                
+                listContainer.className = 'list-unstyled';
+
+                // Collect officials from the form
+                const nameInputs = officialsContainer.querySelectorAll('input[name="official_names[]"]');
+                const positionSelects = officialsContainer.querySelectorAll('select[name="official_positions[]"]');
+
+                let hasOfficials = false;
+                nameInputs.forEach((nameInput, index) => {
+                    const name = nameInput.value.trim();
+                    const position = positionSelects[index].value;
+
+                    if (name && position) {
+                        const li = document.createElement('li');
+                        li.className = 'mb-2';
+                        li.innerHTML = `
+                            <strong>${position}:</strong><br>
+                            ${name}
+                        `;
+                        listContainer.appendChild(li);
+                        hasOfficials = true;
+                    }
+                });
+
+                // Update the panel
+                if (hasOfficials) {
+                    officialsPanelList.innerHTML = '';
+                    officialsPanelList.appendChild(listContainer);
+                } else {
+                    officialsPanelList.innerHTML = '<p class="text-muted text-center">No officials information available.</p>';
+                }
+            }
+
+            // Function to clear officials list
+            function clearOfficialsList() {
+                // Confirm before clearing
+                if (!confirm('Are you sure you want to clear all officials from the list?')) {
+                    return;
+                }
+
+                // Remove all rows except the first one
+                const rows = officialsContainer.querySelectorAll('.official-row');
+                
+
+                // Remove additional rows
+                for (let i = 1; i < rows.length; i++) {
+                    rows[i].remove();
+                }
+
+                // Clear the officials panel
+                const officialsPanelList = document.querySelector('[data-officials-list]');
+                officialsPanelList.innerHTML = '<p class="text-muted text-center">No officials information available.</p>';
+            }
+
+            // Event listener for Add Official button
+            addOfficialBtn.addEventListener('click', function() {
+                const row = createOfficialRow();
+                officialsContainer.appendChild(row);
+                
+                // Focus on the name input of the new row
+                row.querySelector('input[name="official_names[]"]').focus();
+            });
+
+            // Event delegation for dynamically added remove buttons
+            officialsContainer.addEventListener('click', function(e) {
+                const removeBtn = e.target.closest('.remove-official');
+                if (removeBtn) {
+                    const rows = officialsContainer.querySelectorAll('.official-row');
+                    if (rows.length > 1) {
+                        removeBtn.closest('.official-row').remove();
+                        updateOfficialsPanel(); // Update panel after removing a row
+                    } else {
+                        alert('At least one official must be maintained.');
+                    }
+                }
+            });
+
+            // Event listener for clear officials button
+            if (clearOfficialsBtn) {
+                clearOfficialsBtn.addEventListener('click', clearOfficialsList);
+            }
+
+            // Single form submission event listener with validation
+            officialsForm.addEventListener('submit', function(e) {
+                const rows = officialsContainer.querySelectorAll('.official-row');
+                let isValid = true;
+
+                rows.forEach(row => {
+                    const nameInput = row.querySelector('input[name="official_names[]"]');
+                    const positionSelect = row.querySelector('select[name="official_positions[]"]');
+
+                    // Check if name is empty
+                    if (!nameInput.value.trim()) {
+                        nameInput.classList.add('is-invalid');
+                        isValid = false;
+                    } else {
+                        nameInput.classList.remove('is-invalid');
+                    }
+
+                    // Check if position is selected
+                    if (!positionSelect.value) {
+                        positionSelect.classList.add('is-invalid');
+                        isValid = false;
+                    } else {
+                        positionSelect.classList.remove('is-invalid');
+                    }
+                });
+
+                // Prevent form submission if validation fails
+                if (!isValid) {
+                    e.preventDefault();
+                    
+                    // Scroll to the first invalid input
+                    const firstInvalidInput = officialsForm.querySelector('.is-invalid');
+                    if (firstInvalidInput) {
+                        firstInvalidInput.focus();
+                    }
+                } else {
+                    // If valid, update the officials panel before form submission
+                    updateOfficialsPanel();
+                }
+            });
+
+            // Prevent duplicate positions (except 'Other')
+            officialsContainer.addEventListener('change', function(e) {
+                if (e.target.name === 'official_positions[]') {
+                    const positions = Array.from(officialsContainer.querySelectorAll('select[name="official_positions[]"]'))
+                        .map(select => select.value);
+                    
+                    const selectElements = officialsContainer.querySelectorAll('select[name="official_positions[]"]');
+                    
+                    selectElements.forEach(select => {
+                        // Reset options
+                        Array.from(select.options).forEach(option => {
+                            if (option.value !== 'Other') {
+                                option.disabled = false;
+                            }
+                        });
+
+                        // Disable positions that are already selected (except 'Other')
+                        positions.forEach(pos => {
+                            if (pos && pos !== 'Other') {
+                                const optionToDisable = select.querySelector(`option[value="${pos}"]`);
+                                if (optionToDisable && optionToDisable !== select.querySelector('option:checked')) {
+                                    optionToDisable.disabled = true;
+                                }
+                            }
+                        });
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>
