@@ -1,14 +1,11 @@
 <?php
-// Start session securely
 session_start();
 
-// Database connection parameters
 $servername = "localhost"; 
 $username = "root"; 
 $password = ""; 
 $dbname = "barangay_request_system"; 
 
-// Initialize variables
 $showAlert = false;
 $alertType = "";
 $alertMessage = "";
@@ -19,10 +16,8 @@ $currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $itemsPerPage = 10;
 $totalRequests = 0;
 
-// Create database connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
 if ($conn->connect_error) {
     $showAlert = true;
     $alertType = "danger";
@@ -220,6 +215,35 @@ function formatDocumentType($type) {
             padding: 0.35rem 0.65rem;
         }
         
+        /* Enhanced styles for Ready for Pickup status */
+        .badge-ready {
+            background-color: #2563eb !important; 
+            color: white !important;
+            padding: 0.4rem 0.7rem !important;
+            font-weight: 600 !important;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .badge-ready i {
+            margin-right: 0.25rem;
+        }
+        
+        /* Pulse animation for ready badges */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 6px rgba(37, 99, 235, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+            }
+        }
+        
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
@@ -274,7 +298,7 @@ function formatDocumentType($type) {
             <a href="document-requests.php" class="d-block text-decoration-none text-white sidebar-item active">
                 <i class="bi bi-file-earmark-text me-2"></i> Document Requests
             </a>
-            <a href="../../manage-users.php" class="d-block text-decoration-none text-white sidebar-item">
+            <a href="manage-users.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-people me-2"></i> Manage Users
             </a>
             <a href="../../reports.php" class="d-block text-decoration-none text-white sidebar-item">
@@ -423,7 +447,9 @@ function formatDocumentType($type) {
                                                         <?php elseif ($request['status'] == 'processing'): ?>
                                                             <span class="badge bg-info text-white status-badge">Processing</span>
                                                         <?php elseif ($request['status'] == 'ready'): ?>
-                                                            <span class="badge bg-primary status-badge">Ready for Pickup</span>
+                                                            <span class="badge badge-ready status-badge">
+                                                                <i class="bi bi-box-seam"></i> Ready for Pickup
+                                                            </span>
                                                         <?php elseif ($request['status'] == 'completed'): ?>
                                                             <span class="badge bg-success status-badge">Completed</span>
                                                         <?php elseif ($request['status'] == 'rejected'): ?>
@@ -578,7 +604,6 @@ function formatDocumentType($type) {
         </div>
     </div>
 
-    <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     
     <script>
@@ -636,6 +661,16 @@ function formatDocumentType($type) {
                 }
             });
         }
+        
+        // Highlight Ready for Pickup requests
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add special animation to Ready for Pickup badges
+            const readyBadges = document.querySelectorAll('.badge-ready');
+            readyBadges.forEach(badge => {
+                // Add subtle pulse animation
+                badge.style.animation = 'pulse 2s infinite';
+            });
+        });
         
         // Apply filters
         function applyFilters() {

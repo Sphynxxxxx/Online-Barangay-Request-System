@@ -226,16 +226,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         // Commit transaction
                         $db->commit();
                         
-                        // Registration successful
-                        $_SESSION['user_id'] = $userId;
-                        $_SESSION['email'] = $email;
-                        $_SESSION['user_type'] = 'resident';
                         
                         // Set a success message in session
                         $_SESSION['success_msg'] = "Registration successful! Welcome to the Barangay Document System.";
                         
                         // Redirect to dashboard
-                        header("Location: ../../index.php");
+                        header("Location: login.php");
                         exit();
                     } else {
                         $db->rollback();

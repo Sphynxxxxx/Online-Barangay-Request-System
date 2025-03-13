@@ -49,7 +49,7 @@
     <!-- Hero Section -->
     <section class="hero-section">
         <div class="container text-center">
-            <h1 class="display-4 fw-bold mb-3">Barangay Clearance and Document Request System</h1>
+            <h1 class="display-4 fw-bold mb-3">Online Barangay Document Request System</h1>
             <p class="lead mb-4">Brgy. Lanit Jaro, Iloilo City</p>
             <p class="lead mb-4">Simplifying document requests for our community members</p>
             <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">

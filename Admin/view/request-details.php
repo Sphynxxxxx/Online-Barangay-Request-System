@@ -1,14 +1,11 @@
 <?php
-// Start session securely
 session_start();
 
-// Database connection parameters
 $servername = "localhost"; 
 $username = "root"; 
 $password = ""; 
 $dbname = "barangay_request_system"; 
 
-// Initialize variables
 $showAlert = false;
 $alertType = "";
 $alertMessage = "";
@@ -198,6 +195,35 @@ $statusDescriptions = [
             left: -47px;
             top: 3px;
         }
+        
+        /* Enhanced styles for Ready for Pickup status */
+        .badge-ready {
+            background-color: #2563eb !important; /* Brighter blue */
+            color: white !important;
+            padding: 0.4rem 0.7rem !important;
+            font-weight: 600 !important;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .badge-ready i {
+            margin-right: 0.25rem;
+        }
+        
+        /* Pulse animation for ready badges */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 6px rgba(37, 99, 235, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -229,9 +255,15 @@ $statusDescriptions = [
                                     Request #<?php echo $requestDetails['request_id']; ?> 
                                     - <?php echo $documentTypes[$requestDetails['document_type']] ?? $requestDetails['document_type']; ?>
                                 </h5>
-                                <span class="badge <?php echo $statusColors[$requestDetails['status']] ?? 'bg-secondary'; ?> status-badge">
-                                    <?php echo ucfirst($requestDetails['status']); ?>
-                                </span>
+                                <?php if ($requestDetails['status'] == 'ready'): ?>
+                                    <span class="badge badge-ready status-badge" style="animation: pulse 2s infinite;">
+                                        <i class="bi bi-box-seam"></i> Ready for Pickup
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge <?php echo $statusColors[$requestDetails['status']] ?? 'bg-secondary'; ?> status-badge">
+                                        <?php echo ucfirst($requestDetails['status']); ?>
+                                    </span>
+                                <?php endif; ?>
                             </div>
                             <div class="card-body">
                                 <div class="row">
@@ -299,7 +331,7 @@ $statusDescriptions = [
                                                             echo 'light';
                                                         }
                                                     ?>"></div>
-                                                    <h6><?php echo ucfirst($status); ?></h6>
+                                                    <h6><?php echo $status == 'ready' ? 'Ready for Pickup' : ucfirst($status); ?></h6>
                                                     <p class="text-muted small">
                                                         <?php echo $statusDescriptions[$status]; ?>
                                                         <?php if ($index == $currentStatusIndex): ?>
@@ -364,8 +396,10 @@ $statusDescriptions = [
                                         <select name="status" id="status" class="form-select" required>
                                             <option value="pending" <?php echo $requestDetails['status'] === 'pending' ? 'selected' : ''; ?>>Pending</option>
                                             <option value="processing" <?php echo $requestDetails['status'] === 'processing' ? 'selected' : ''; ?>>Processing</option>
+                                            <option value="ready" <?php echo $requestDetails['status'] === 'ready' ? 'selected' : ''; ?>>Ready for Pickup</option>
                                             <option value="completed" <?php echo $requestDetails['status'] === 'completed' ? 'selected' : ''; ?>>Completed</option>
                                             <option value="rejected" <?php echo $requestDetails['status'] === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
+                                            <option value="cancelled" <?php echo $requestDetails['status'] === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
                                         </select>
                                     </div>
                                     <div class="mb-3">
@@ -491,6 +525,16 @@ $statusDescriptions = [
                     return false;
                 }
             }
+        });
+        
+        // Highlight ready for pickup status with animation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add special animation to Ready for Pickup badges
+            const readyBadges = document.querySelectorAll('.badge-ready');
+            readyBadges.forEach(badge => {
+                // Add subtle pulse animation
+                badge.style.animation = 'pulse 2s infinite';
+            });
         });
     </script>
 </body>

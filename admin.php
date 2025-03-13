@@ -276,7 +276,7 @@ if (isset($_SESSION['success_msg'])) {
                 <span class="badge bg-warning rounded-pill float-end"><?php echo $pendingRequests; ?></span>
                 <?php endif; ?>
             </a>
-            <a href="manage-users.php" class="d-block text-decoration-none text-white sidebar-item">
+            <a href="Admin/view/manage-users.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-people me-2"></i> Manage Users
             </a>
             <a href="reports.php" class="d-block text-decoration-none text-white sidebar-item">
@@ -297,7 +297,7 @@ if (isset($_SESSION['success_msg'])) {
             <div class="row mb-4">
                 <div class="col">
                     <h1 class="display-6 mb-3">Welcome, Admin!</h1>
-                    <p class="lead">Manage the Barangay Clearance and Document Request System from this dashboard.</p>
+                    <p class="lead">Manage the Barangay Document Request System from this dashboard.</p>
                     
                     <?php if ($showAlert): ?>
                         <div class="alert alert-<?php echo $alertType; ?> alert-dismissible fade show" role="alert">
@@ -445,7 +445,7 @@ if (isset($_SESSION['success_msg'])) {
                                                             </form>
                                                         </div>
                                                     <?php else: ?>
-                                                        <a href="user-details.php?id=<?php echo $user['user_id']; ?>" class="btn btn-sm btn-outline-primary">
+                                                        <a href="Admin/view/documents-edit/user-details.php?id=<?php echo $user['user_id']; ?>" class="btn btn-sm btn-outline-primary">
                                                             <i class="bi bi-eye"></i> View
                                                         </a>
                                                     <?php endif; ?>

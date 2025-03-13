@@ -1,14 +1,11 @@
 <?php
-// Start session securely
 session_start();
 
-// Database connection parameters
 $servername = "localhost"; 
 $username = "root"; 
 $password = ""; 
 $dbname = "barangay_request_system"; 
 
-// Initialize variables
 $showAlert = false;
 $alertType = "";
 $alertMessage = "";

@@ -83,7 +83,7 @@ $statusColors = [
     'pending' => 'bg-warning',
     'processing' => 'bg-info',
     'ready' => 'bg-success',
-    'completed' => 'bg-primary',
+    'completed' => 'bg-success',
     'rejected' => 'bg-danger',
     'cancelled' => 'bg-secondary'
 ];

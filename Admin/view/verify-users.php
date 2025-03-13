@@ -1,14 +1,11 @@
 <?php
-// Start session securely
 session_start();
 
-// Database connection parameters
 $servername = "localhost"; 
 $username = "root"; 
 $password = ""; 
 $dbname = "barangay_request_system"; 
 
-// Initialize variables
 $showAlert = false;
 $alertType = "";
 $alertMessage = "";
@@ -205,6 +202,9 @@ if ($conn->connect_error) {
             </a>
             <a href="manage-users.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-people me-2"></i> Manage Users
+            </a>
+            <a href="reports.php" class="d-block text-decoration-none text-white sidebar-item">
+                <i class="bi bi-graph-up me-2"></i> Reports
             </a>
             <a href="system-logs.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-journal-text me-2"></i> System Logs
