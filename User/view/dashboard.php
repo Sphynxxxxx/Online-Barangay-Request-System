@@ -499,11 +499,11 @@ if (isset($_SESSION['success_msg'])) {
                                         <i class="bi bi-list-check me-2"></i>Document Requirements
                                     </a>
                                 </li>
-                                <li class="list-group-item">
+                                <!--<li class="list-group-item">
                                     <a href="announcements.php" class="text-decoration-none">
                                         <i class="bi bi-megaphone me-2"></i>Barangay Announcements
                                     </a>
-                                </li>
+                                </li>-->
                                 <li class="list-group-item">
                                     <a href="contact.php" class="text-decoration-none">
                                         <i class="bi bi-telephone me-2"></i>Contact Barangay Officials
@@ -513,6 +513,7 @@ if (isset($_SESSION['success_msg'])) {
                         </div>
                     </div>
                 </div>
+                
                 <div class="col-md-6 mb-4">
                     <div class="card h-100">
                         <div class="card-header bg-info text-white">

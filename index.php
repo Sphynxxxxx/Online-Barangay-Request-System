@@ -25,8 +25,8 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#">Home</a>
+                    <!--<li class="nav-item">
+                        <a class="nav-link active" href="index.php">Home</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">Services</a>
@@ -36,7 +36,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">Contact</a>
-                    </li>
+                    </li>-->
                 </ul>
                 <div class="d-flex">
                     <a href="User/view/login.php" class="btn btn-light me-2">Login</a>
@@ -52,10 +52,10 @@
             <h1 class="display-4 fw-bold mb-3">Online Barangay Document Request System</h1>
             <p class="lead mb-4">Brgy. Lanit Jaro, Iloilo City</p>
             <p class="lead mb-4">Simplifying document requests for our community members</p>
-            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <!--<div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
                 <button type="button" class="btn btn-light btn-lg px-4 gap-3">Get Started</button>
                 <button type="button" class="btn btn-outline-light btn-lg px-4">Learn More</button>
-            </div>
+            </div>-->
         </div>
     </section>
 

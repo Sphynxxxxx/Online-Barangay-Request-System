@@ -15,20 +15,17 @@ $userId = $_SESSION['user_id'];
 $userType = $_SESSION['user_type'];
 $userName = isset($_SESSION['name']) ? $_SESSION['name'] : 'User';
 
-// Get unread notifications count
 $unreadCount = 0;
 
 try {
     $db = new Database();
     
-    // Count unread notifications
     $unreadNotifSql = "SELECT COUNT(*) as unread_count 
                         FROM notifications 
                         WHERE user_id = ? AND is_read = 0";
     $unreadNotifications = $db->fetchOne($unreadNotifSql, [$userId]);
     $unreadCount = $unreadNotifications['unread_count'] ?? 0;
     
-    // Get notifications for dropdown
     $notifSql = "SELECT notification_id, message, is_read, created_at 
                 FROM notifications 
                 WHERE user_id = ? " . ($userType != 'resident' ? " OR is_system = 1" : "") . "
@@ -225,7 +222,7 @@ try {
         <div class="faq-header">
             <div class="container text-center">
                 <h1><i class="bi bi-question-circle me-2"></i>Frequently Asked Questions</h1>
-                <p class="lead">Find answers to common questions about our Barangay Clearance and Document Request System</p>
+                <p class="lead">Find answers to common questions about our Online Barangay Document Request System</p>
             </div>
         </div>
 
@@ -313,7 +310,7 @@ try {
                                     <ol>
                                         <li>Log in to your account</li>
                                         <li>Go to the "Request Document" page from the navigation menu</li>
-                                        <li>Select "Barangay Clearance" from the document options</li>
+                                        <li>Select "Barangay Clearance or other Documents" from the document options</li>
                                         <li>Fill out the required information in the form</li>
                                         <li>Upload any required supporting documents</li>
                                         <li>Submit your request</li>
@@ -398,7 +395,7 @@ try {
                     </div>
                 </div>
             </div>
-            
+
             <!-- Account & Profile FAQ -->
             <div class="row mb-5" id="account-profile">
                 <div class="col-12">
@@ -561,3 +558,378 @@ try {
                                         <li><strong>Cash payment</strong> at the Barangay Hall</li>
                                         <li><strong>GCash</strong> (mobile payment method)</li>
                                         <li><strong>PayMaya</strong> (mobile payment method)</li>
+                                        <li><strong>Bank transfer</strong> to the Barangay's official account</li>
+                                    </ul>
+                                    <p>Payment instructions will be provided when your request is approved. Always keep your payment receipt as proof of transaction.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingFourteen">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFourteen" aria-expanded="false" aria-controls="collapseFourteen">
+                                    Will I get a refund if my request is rejected?
+                                </button>
+                            </h2>
+                            <div id="collapseFourteen" class="accordion-collapse collapse" aria-labelledby="headingFourteen" data-bs-parent="#accordionFeesPayments">
+                                <div class="accordion-body">
+                                    <p>Our payment policy regarding rejections:</p>
+                                    <ul>
+                                        <li>Since payment is typically made after approval or during pickup, you generally won't need a refund if your request is rejected.</li>
+                                        <li>If you've made an advance payment for a request that is later rejected, you're eligible for a full refund.</li>
+                                        <li>To claim a refund, visit the Barangay Hall with your payment receipt and request reference number.</li>
+                                    </ul>
+                                    <p>If you have questions about refunds, please contact the Barangay Treasury Office for assistance.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support & Help FAQ -->
+            <div class="row mb-5" id="support-help">
+                <div class="col-12">
+                    <h3 class="mb-4"><i class="bi bi-headset me-2 text-primary"></i>Support & Help</h3>
+                    <div class="accordion" id="accordionSupportHelp">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingFifteen">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFifteen" aria-expanded="true" aria-controls="collapseFifteen">
+                                    How do I contact the Barangay Office for help?
+                                </button>
+                            </h2>
+                            <div id="collapseFifteen" class="accordion-collapse collapse show" aria-labelledby="headingFifteen" data-bs-parent="#accordionSupportHelp">
+                                <div class="accordion-body">
+                                    <p>You can contact the Barangay Office through the following channels:</p>
+                                    <ul>
+                                        <li><strong>Phone</strong>: (123) 456-7890</li>
+                                        <li><strong>Email</strong>: support@barangayservices.gov.ph</li>
+                                        <li><strong>Office Visit</strong>: Barangay Hall Lanit, Jaro, Iloilo City</li>
+                                        <li><strong>Office Hours</strong>: Monday - Friday, 8:00 AM - 5:00 PM</li>
+                                        <li><strong>Contact Form</strong>: Available on the "Contact" page of this website</li>
+                                    </ul>
+                                    <p>For urgent matters outside office hours, please contact the Barangay Emergency Hotline at (123) 456-7899.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingSixteen">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSixteen" aria-expanded="false" aria-controls="collapseSixteen">
+                                    What if I encounter technical issues with the system?
+                                </button>
+                            </h2>
+                            <div id="collapseSixteen" class="accordion-collapse collapse" aria-labelledby="headingSixteen" data-bs-parent="#accordionSupportHelp">
+                                <div class="accordion-body">
+                                    <p>If you encounter technical issues with the system:</p>
+                                    <ol>
+                                        <li>Try refreshing the page or clearing your browser cache</li>
+                                        <li>Make sure you're using a supported browser (Chrome, Firefox, Safari, or Edge)</li>
+                                        <li>If the issue persists, report the problem by:
+                                            <ul>
+                                                <li>Taking a screenshot of the error</li>
+                                                <li>Noting what you were trying to do when the error occurred</li>
+                                                <li>Emailing these details to tech.support@barangayservices.gov.ph</li>
+                                            </ul>
+                                        </li>
+                                    </ol>
+                                    <p>Our technical team will respond to your issue within 24-48 hours. For urgent technical issues that prevent you from submitting important requests, please call our support hotline.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingSeventeen">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeventeen" aria-expanded="false" aria-controls="collapseSeventeen">
+                                    How can I provide feedback or suggestions?
+                                </button>
+                            </h2>
+                            <div id="collapseSeventeen" class="accordion-collapse collapse" aria-labelledby="headingSeventeen" data-bs-parent="#accordionSupportHelp">
+                                <div class="accordion-body">
+                                    <p>We value your feedback and suggestions for improving our services. You can provide feedback through:</p>
+                                    <ul>
+                                        <li><strong>Feedback Form</strong>: Available on the "Contact" page</li>
+                                        <li><strong>Email</strong>: feedback@barangayservices.gov.ph</li>
+                                        <li><strong>Suggestion Box</strong>: Located at the Barangay Hall</li>
+                                        <li><strong>User Surveys</strong>: Occasionally sent to system users</li>
+                                    </ul>
+                                    <p>All feedback is reviewed by our management team and considered for future system improvements. We appreciate your input in helping us serve the community better.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingEighteen">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEighteen" aria-expanded="false" aria-controls="collapseEighteen">
+                                    Are there in-person assistance options available?
+                                </button>
+                            </h2>
+                            <div id="collapseEighteen" class="accordion-collapse collapse" aria-labelledby="headingEighteen" data-bs-parent="#accordionSupportHelp">
+                                <div class="accordion-body">
+                                    <p>Yes, we offer in-person assistance for residents who need help using the system:</p>
+                                    <ul>
+                                        <li><strong>Service Desk</strong>: Located at the Barangay Hall during office hours</li>
+                                        <li><strong>Digital Assistance Program</strong>: Staff members are available to help residents navigate the online system</li>
+                                        <li><strong>Community Outreach</strong>: Periodic training sessions held at community centers</li>
+                                    </ul>
+                                    <p>Residents who have difficulty accessing or using the online system can still request documents in person at the Barangay Hall. Our staff will be happy to assist you with the process.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingNineteen">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNineteen" aria-expanded="false" aria-controls="collapseNineteen">
+                                    What should I do if I don't receive notifications about my request?
+                                </button>
+                            </h2>
+                            <div id="collapseNineteen" class="accordion-collapse collapse" aria-labelledby="headingNineteen" data-bs-parent="#accordionSupportHelp">
+                                <div class="accordion-body">
+                                    <p>If you're not receiving notifications about your request:</p>
+                                    <ol>
+                                        <li>Check your "My Requests" page for the current status</li>
+                                        <li>Verify your email address and phone number in your profile settings</li>
+                                        <li>Check your email spam/junk folder</li>
+                                        <li>Ensure notifications are enabled in your account settings</li>
+                                        <li>If you still don't receive notifications, contact the support team with your request reference number</li>
+                                    </ol>
+                                    <p>Even without notifications, you can always check the status of your requests by logging into your account and visiting the "My Requests" page.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional FAQ Section -->
+            <div class="row mb-5" id="additional-faq">
+                <div class="col-12">
+                    <h3 class="mb-4"><i class="bi bi-info-circle me-2 text-primary"></i>Additional Information</h3>
+                    <div class="accordion" id="accordionAdditionalInfo">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwenty">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwenty" aria-expanded="false" aria-controls="collapseTwenty">
+                                    What's the difference between a Barangay Clearance and a Certificate of Residency?
+                                </button>
+                            </h2>
+                            <div id="collapseTwenty" class="accordion-collapse collapse" aria-labelledby="headingTwenty" data-bs-parent="#accordionAdditionalInfo">
+                                <div class="accordion-body">
+                                    <p>Here are the key differences between these two documents:</p>
+                                    
+                                    <p><strong>Barangay Clearance:</strong></p>
+                                    <ul>
+                                        <li>Certifies that you have no derogatory record in the barangay</li>
+                                        <li>Often required for employment, scholarship applications, bank transactions, etc.</li>
+                                        <li>Includes verification of your good standing in the community</li>
+                                        <li>Fee: ₱100.00</li>
+                                    </ul>
+                                    
+                                    <p><strong>Certificate of Residency:</strong></p>
+                                    <ul>
+                                        <li>Certifies that you are a legitimate resident of the barangay</li>
+                                        <li>Specifies how long you have been residing in the barangay</li>
+                                        <li>Often required for school enrollment, voter registration, etc.</li>
+                                        <li>Fee: ₱50.00</li>
+                                    </ul>
+                                    
+                                    <p>Some applications may require both documents, while others may specifically ask for one or the other. If you're unsure which document you need, contact the Barangay Office for guidance.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwentyOne">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwentyOne" aria-expanded="false" aria-controls="collapseTwentyOne">
+                                    How do I request multiple documents at once?
+                                </button>
+                            </h2>
+                            <div id="collapseTwentyOne" class="accordion-collapse collapse" aria-labelledby="headingTwentyOne" data-bs-parent="#accordionAdditionalInfo">
+                                <div class="accordion-body">
+                                    <p>Currently, you need to submit separate requests for each document you need. Here's the most efficient way to request multiple documents:</p>
+                                    
+                                    <ol>
+                                        <li>Plan ahead and submit all requests at the same time</li>
+                                        <li>Complete one request form fully before starting another</li>
+                                        <li>Use consistent information across all your requests</li>
+                                        <li>If the documents are for the same purpose, mention this in the "Purpose" field of each request</li>
+                                    </ol>
+                                    
+                                    <p>This approach helps ensure that all your documents can be processed efficiently. You can track the status of all your requests on the "My Requests" page.</p>
+                                    
+                                    <p>Note: While you need to submit separate requests, you may be able to pick up all completed documents in a single visit to the Barangay Hall, provided they're all ready at the same time.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwentyTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwentyTwo" aria-expanded="false" aria-controls="collapseTwentyTwo">
+                                    Can someone else pick up my document for me?
+                                </button>
+                            </h2>
+                            <div id="collapseTwentyTwo" class="accordion-collapse collapse" aria-labelledby="headingTwentyTwo" data-bs-parent="#accordionAdditionalInfo">
+                                <div class="accordion-body">
+                                    <p>Yes, someone else can pick up your document on your behalf, but there are specific requirements:</p>
+                                    
+                                    <p><strong>Required for representative pickup:</strong></p>
+                                    <ol>
+                                        <li>An authorization letter signed by you</li>
+                                        <li>A photocopy of your valid ID</li>
+                                        <li>The original valid ID of your representative</li>
+                                        <li>The request reference number</li>
+                                    </ol>
+                                    
+                                    <p>The authorization letter should clearly state:</p>
+                                    <ul>
+                                        <li>Your full name and address</li>
+                                        <li>Your representative's full name and relationship to you</li>
+                                        <li>The specific document(s) to be picked up</li>
+                                        <li>The date of authorization</li>
+                                        <li>Your signature</li>
+                                    </ul>
+                                    
+                                    <p>For security reasons, certain documents may have stricter requirements for third-party pickup. If you plan to send a representative, it's advisable to contact the Barangay Office in advance to confirm the requirements.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwentyThree">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwentyThree" aria-expanded="false" aria-controls="collapseTwentyThree">
+                                    What should I do if there's an error on my document?
+                                </button>
+                            </h2>
+                            <div id="collapseTwentyThree" class="accordion-collapse collapse" aria-labelledby="headingTwentyThree" data-bs-parent="#accordionAdditionalInfo">
+                                <div class="accordion-body">
+                                    <p>If you notice an error on your issued document:</p>
+                                    
+                                    <ol>
+                                        <li>Do not use or submit the document with errors</li>
+                                        <li>Return to the Barangay Hall as soon as possible</li>
+                                        <li>Bring the erroneous document with you</li>
+                                        <li>Explain the error to the staff and request a correction</li>
+                                        <li>Provide any supporting documents that verify the correct information</li>
+                                    </ol>
+                                    
+                                    <p><strong>Correction policies:</strong></p>
+                                    <ul>
+                                        <li>If the error was made by the Barangay staff, the correction will be made free of charge</li>
+                                        <li>If the error was due to incorrect information you provided, you may need to submit a new request with the correct information</li>
+                                        <li>Minor typographical errors are usually corrected on the spot</li>
+                                        <li>Major information changes might require verification and additional processing time</li>
+                                    </ul>
+                                    
+                                    <p>To prevent errors, always carefully review your information before submitting requests and promptly update your profile if any of your personal details change.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Still Have Questions -->
+            <div class="row mt-5 mb-5">
+                <div class="col-md-8 mx-auto text-center">
+                    <div class="card bg-primary text-white p-4">
+                        <h4><i class="bi bi-chat-dots me-2"></i>Still Have Questions?</h4>
+                        <p class="lead">We're here to help. Contact our support team or visit the Barangay Hall.</p>
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="contact.php" class="btn btn-light">
+                                <i class="bi bi-envelope me-2"></i>Contact Us
+                            </a>
+                            <a href="tel:1234567890" class="btn btn-outline-light">
+                                <i class="bi bi-telephone me-2"></i>Call Support
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-white">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2025 Barangay Clearance and Document Request System</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="#" class="text-white me-3"><i class="bi bi-facebook"></i></a>
+                    <a href="#" class="text-white me-3"><i class="bi bi-twitter"></i></a>
+                    <a href="#" class="text-white"><i class="bi bi-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+            
+            // FAQ Search functionality
+            const searchInput = document.getElementById('faqSearch');
+            const searchBtn = document.getElementById('searchBtn');
+            
+            function performSearch() {
+                const searchTerm = searchInput.value.toLowerCase();
+                
+                if (!searchTerm.trim()) return;
+                
+                // Get all accordion buttons
+                const accordionButtons = document.querySelectorAll('.accordion-button');
+                
+                // Close all accordion items first
+                const accordionCollapses = document.querySelectorAll('.accordion-collapse');
+                accordionCollapses.forEach(collapse => {
+                    collapse.classList.remove('show');
+                });
+                
+                // Search through accordion items
+                let foundMatch = false;
+                
+                accordionButtons.forEach(button => {
+                    const text = button.textContent.toLowerCase();
+                    const accordionId = button.getAttribute('data-bs-target');
+                    const accordionContent = document.querySelector(accordionId);
+                    const contentText = accordionContent ? accordionContent.textContent.toLowerCase() : '';
+                    
+                    // If the search term is found in the question or answer
+                    if (text.includes(searchTerm) || contentText.includes(searchTerm)) {
+                        // Expand this accordion item
+                        button.classList.remove('collapsed');
+                        if (accordionContent) {
+                            accordionContent.classList.add('show');
+                        }
+                        
+                        // Scroll to the first match
+                        if (!foundMatch) {
+                            button.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            foundMatch = true;
+                        }
+                    } else {
+                        // Collapse this accordion item
+                        button.classList.add('collapsed');
+                    }
+                });
+                
+                // If no matches found, show an alert
+                if (!foundMatch) {
+                    alert('No matches found for "' + searchTerm + '". Please try a different search term.');
+                }
+            }
+            
+            // Search on button click
+            searchBtn.addEventListener('click', performSearch);
+            
+            // Search on Enter key press
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
