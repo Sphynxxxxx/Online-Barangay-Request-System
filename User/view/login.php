@@ -192,7 +192,7 @@ function sanitize_input($data) {
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
+                        <!-- <li class="nav-item">
                             <a class="nav-link" href="../../index.php">Home</a>
                         </li>
                         <li class="nav-item">
@@ -203,7 +203,7 @@ function sanitize_input($data) {
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#">Contact</a>
-                        </li>
+                        </li>-->
                     </ul>
                     <div class="d-flex">
                         <a href="register.php" class="btn btn-outline-light me-3">Register</a>

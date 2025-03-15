@@ -97,6 +97,13 @@ $documentPurposes = [
     'others' => 'Others'
 ];
 
+$paymentMethods = [
+    'cash' => 'Cash on Pickup',
+    'gcash' => 'GCash',
+    'paymaya' => 'PayMaya',
+    'bank_transfer' => 'Bank Transfer'
+];
+
 // Check if specific document type is requested from URL
 $selectedDocType = '';
 if (isset($_GET['type']) && array_key_exists($_GET['type'], $documentTypes)) {
@@ -113,6 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $purpose = $_POST['purpose'] ?? '';
     $purposeOther = $_POST['purpose_other'] ?? '';
     $urgentRequest = isset($_POST['urgent_request']) ? 1 : 0;
+    $paymentMethod = $_POST['payment_method'] ?? 'cash';
     
     // Validate Barangay Clearance specific fields if selected
     if ($docType === 'barangay_clearance') {
@@ -156,6 +164,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $formErrors[] = "Please specify the purpose of your request.";
     }
     
+    if (!array_key_exists($paymentMethod, $paymentMethods)) {
+        $formErrors[] = "Please select a valid payment method.";
+    }
+    
     // If all validations pass, save to database
     if (empty($formErrors)) {
         try {
@@ -168,10 +180,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $processingFee *= 1.5; // 50% additional fee for urgent requests
             }
             
-            $sql = "INSERT INTO requests (user_id, document_type, purpose, urgent_request, processing_fee, status, created_at) 
-                   VALUES (?, ?, ?, ?, ?, 'pending', NOW())";
+            $sql = "INSERT INTO requests (user_id, document_type, purpose, urgent_request, processing_fee, payment_method, status, created_at) 
+                   VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())";
             
-            $params = [$userId, $docType, $purposeText, $urgentRequest, $processingFee];
+            $params = [$userId, $docType, $purposeText, $urgentRequest, $processingFee, $paymentMethod];
             $result = $db->execute($sql, $params);
             
             if ($result) {
@@ -194,20 +206,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $db->execute($detailsSql, $detailsParams);
                 }
                 
-                // Create notification for the user
-                $notifMessage = "Your request for " . $documentTypes[$docType] . " has been submitted successfully.";
+                // --- Process payment proof if it exists in session ---
+                if (isset($_SESSION['payment_proof']) && $_SESSION['payment_proof']['timestamp'] > (time() - 3600)) { // Only use if less than 1 hour old
+                    $paymentProof = $_SESSION['payment_proof'];
+                    
+                    // Move temporary file to final destination
+                    $tempPath = $paymentProof['file_path'];
+                    $extension = pathinfo($tempPath, PATHINFO_EXTENSION);
+                    $finalFilename = 'payment_proof_' . $requestId . '_' . time() . '.' . $extension;
+                    $finalPath = 'uploads/payment_proofs/' . $finalFilename;
+                    
+                    // Create directory if not exists
+                    if (!is_dir('uploads/payment_proofs/')) {
+                        mkdir('uploads/payment_proofs/', 0755, true);
+                    }
+                    
+                    // Move file from temp to final location
+                    if (file_exists($tempPath) && copy($tempPath, $finalPath)) {
+                        // Insert into payment_proofs table
+                        $paymentSql = "INSERT INTO payment_proofs (request_id, user_id, payment_method, payment_reference, 
+                                       proof_image, payment_notes, status, created_at) 
+                                      VALUES (?, ?, ?, ?, ?, ?, 'submitted', NOW())";
+                        
+                        $paymentParams = [
+                            $requestId, 
+                            $userId, 
+                            $paymentProof['payment_method'],
+                            $paymentProof['reference_number'],
+                            $finalPath,
+                            $paymentProof['payment_notes']
+                        ];
+                        
+                        $db->execute($paymentSql, $paymentParams);
+                        
+                        // Update the notification message to include payment confirmation
+                        $notifMessage = "Your request for " . $documentTypes[$docType] . " has been submitted successfully. Payment proof has been received.";
+                        $sysNotifMessage = "New document request: " . $documentTypes[$docType] . " (Request #$requestId) with payment proof";
+                        
+                        // Clean up temporary file
+                        @unlink($tempPath);
+                        
+                        // Clear session payment data
+                        unset($_SESSION['payment_proof']);
+                    }
+                } else {
+                    // Create notification for the user (default if no payment proof)
+                    $notifMessage = "Your request for " . $documentTypes[$docType] . " has been submitted successfully.";
+                    
+                    // Add payment method information to notification
+                    if ($paymentMethod != 'cash') {
+                        $notifMessage .= " Please complete your payment using " . $paymentMethods[$paymentMethod] . ".";
+                    }
+                    
+                    // Create system notification for staff/admin
+                    $sysNotifMessage = "New document request: " . $documentTypes[$docType] . " (Request #$requestId)";
+                    
+                    // Add payment method to admin notification
+                    $sysNotifMessage .= " - Payment via " . $paymentMethods[$paymentMethod];
+                }
+                
+                // Insert notifications
                 $notifSql = "INSERT INTO notifications (user_id, message, is_read, is_system, created_at) 
                             VALUES (?, ?, 0, 0, NOW())";
                 $db->execute($notifSql, [$userId, $notifMessage]);
                 
-                // Create system notification for staff/admin
-                $sysNotifMessage = "New document request: " . $documentTypes[$docType] . " (Request #$requestId)";
                 $sysNotifSql = "INSERT INTO notifications (message, is_read, is_system, created_at) 
                             VALUES (?, 0, 1, NOW())";
                 $db->execute($sysNotifSql, [$sysNotifMessage]);
                 
                 // Set success message and redirect
                 $_SESSION['success_msg'] = "Your request for " . $documentTypes[$docType] . " has been submitted successfully. Request ID: #$requestId";
+                
+                // Add payment instructions to session message for online payments
+                if ($paymentMethod != 'cash') {
+                    $_SESSION['payment_method'] = $paymentMethod;
+                    $_SESSION['payment_amount'] = $processingFee;
+                    $_SESSION['request_id'] = $requestId;
+                }
                 
                 $db->closeConnection();
                 
@@ -232,7 +307,6 @@ $notifications = [];
 try {
     $db = new Database();
     
-    // Get notifications
     // Get notifications
     $notifSql = "SELECT notification_id, message, is_read, created_at 
         FROM notifications 
@@ -655,11 +729,33 @@ try {
                                         <p class="mb-1"><strong>Total Fee:</strong> ₱<span id="totalFee">
                                             <?php echo !empty($selectedDocType) ? number_format($documentFees[$selectedDocType], 2) : '0.00'; ?>
                                         </span></p>
-                                        <p class="mb-1"><strong>Payment Method:</strong> Cash on pickup</p>
+                                        <p class="mb-1"><strong>Payment Method:</strong> <span id="displayPaymentMethod">Cash on pickup</span></p>
                                     </div>
                                 </div>
+
+                                <div class="mb-3 mt-3">
+                                    <label for="payment_method" class="form-label"><strong>Payment Method</strong> <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="payment_method" name="payment_method" required>
+                                        <?php foreach ($paymentMethods as $key => $value): ?>
+                                        <option value="<?php echo $key; ?>" <?php echo (isset($_POST['payment_method']) && $_POST['payment_method'] === $key) ? 'selected' : ''; ?>>
+                                            <?php echo $value; ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
                             </div>
-                            
+
+                            <div id="onlinePaymentInfo" class="mt-3 d-none">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <strong>Online Payment Instructions:</strong>
+                                    <p class="mb-1 mt-2">Please scan the QR code below to make your payment. Make sure to include your Request ID in the payment reference.</p>
+                                    <button type="button" class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#qrCodeModal">
+                                        <i class="bi bi-qr-code me-2"></i>View QR Code
+                                    </button>
+                                </div>
+                            </div>
+                                                        
                             <div class="alert alert-warning" role="alert">
                                 <i class="bi bi-clock me-2"></i>
                                 <strong>Processing Time:</strong> Regular requests are processed within 3-5 business days.
@@ -684,6 +780,90 @@ try {
                     </a>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="qrCodeModalLabel">Scan QR Code to Pay</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div id="gcashQR" class="payment-qr">
+                        <h5 class="text-primary mb-3"><i class="bi bi-phone me-2"></i>GCash Payment</h5>
+                        <img src="assets/qr.png" alt="GCash QR Code" class="img-fluid mb-3" width="300" height="300" style="border: 1px solid #ddd; padding: 10px;">
+                        <p>Barangay Services GCash Account</p>
+                    </div>
+                    
+                    <div id="paymayaQR" class="payment-qr d-none">
+                        <h5 class="text-primary mb-3"><i class="bi bi-phone me-2"></i>PayMaya Payment</h5>
+                        <img src="/api/placeholder/300/300" alt="PayMaya QR Code" class="img-fluid mb-3" style="border: 1px solid #ddd; padding: 10px;">
+                        <p>Barangay Services PayMaya Account</p>
+                    </div>
+                    
+                    <div id="bankTransferQR" class="payment-qr d-none">
+                        <h5 class="text-primary mb-3"><i class="bi bi-bank me-2"></i>Bank Transfer Details</h5>
+                        <div class="text-start p-3" style="border: 1px solid #ddd;">
+                            <p><strong>Bank:</strong> Sample Bank</p>
+                            <p><strong>Account Name:</strong> Barangay Services</p>
+                            <p><strong>Account Number:</strong> 1234-5678-9012</p>
+                            <p><strong>Branch:</strong> Main Branch</p>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Important:</strong> Please include your Request ID in the payment reference. And present the receipt to the Barangay Services staff for verification.
+                    </div>
+                    
+                    <!-- Payment Proof Upload Section -->
+                    <div class="mt-4 p-3 border rounded bg-light">
+                        <h5 class="mb-3"><i class="bi bi-upload me-2"></i>Upload Payment Screenshot</h5>
+                        <p class="text-muted mb-3">Please take a screenshot of your payment confirmation and upload it below.</p>
+                        
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Note:</strong> Make sure your screenshot clearly shows:
+                            <ul class="mb-0 mt-2 text-start">
+                                <li>Reference/Transaction Number</li>
+                                <li>Amount Paid</li>
+                                <li>Date and Time</li>
+                            </ul>
+                        </div>
+                        
+                        <div id="paymentProofForm">
+                            <input type="hidden" id="proof_request_id" name="request_id" value="">
+                            <input type="hidden" id="proof_payment_method" name="payment_method" value="">
+                            
+                            <div class="mb-3">
+                                <label for="proofImage" class="form-label">Upload Screenshot</label>
+                                <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/*">
+                                <!-- Preview container -->
+                                <div id="imagePreview" class="text-center mt-3"></div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="referenceNumber" class="form-label">Reference/Transaction Number</label>
+                                <input type="text" class="form-control" id="referenceNumber" name="reference_number" placeholder="Enter reference number">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="paymentNotes" class="form-label">Additional Notes (Optional)</label>
+                                <textarea class="form-control" id="paymentNotes" name="payment_notes" rows="2" placeholder="Any additional information about your payment"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" id="paymentComplete">
+                        <i class="bi bi-check-circle me-2"></i>Save Payment Proof
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -722,6 +902,9 @@ try {
             const urgentFeeElement = document.getElementById('urgentFee');
             const totalFeeElement = document.getElementById('totalFee');
             const barangayClearanceFields = document.getElementById('barangayClearanceFields');
+            const paymentMethodSelect = document.getElementById('payment_method');
+            const onlinePaymentInfo = document.getElementById('onlinePaymentInfo');
+            const paymentQRs = document.querySelectorAll('.payment-qr');
             
             // Document requirements data
             const documentRequirements = <?php echo json_encode($documentRequirements); ?>;
@@ -838,8 +1021,247 @@ try {
                     bsAlert.close();
                 }, 5000);
             });
-        });
 
+            // Handle payment method change
+            paymentMethodSelect.addEventListener('change', function() {
+                // Show/hide online payment info
+                if (this.value !== 'cash') {
+                    onlinePaymentInfo.classList.remove('d-none');
+                } else {
+                    onlinePaymentInfo.classList.add('d-none');
+                }
+                
+                // Update modal content based on selected payment method
+                document.getElementById('qrCodeModalLabel').textContent = 
+                    'Scan QR Code to Pay via ' + this.options[this.selectedIndex].text;
+                
+                // Update the displayed payment method in the fee summary
+                document.getElementById('displayPaymentMethod').textContent = this.options[this.selectedIndex].text;
+                
+                // Update the payment method in the form
+                if (document.getElementById('proof_payment_method')) {
+                    document.getElementById('proof_payment_method').value = this.value;
+                }
+            });
+            
+            // Show the correct QR code in the modal based on selected payment method
+            const qrCodeModal = document.getElementById('qrCodeModal');
+            qrCodeModal.addEventListener('show.bs.modal', function () {
+                // Hide all payment QRs first
+                paymentQRs.forEach(qr => qr.classList.add('d-none'));
+                
+                // Show the selected payment method QR
+                const selectedMethod = paymentMethodSelect.value;
+                if (selectedMethod === 'gcash') {
+                    document.getElementById('gcashQR').classList.remove('d-none');
+                } else if (selectedMethod === 'paymaya') {
+                    document.getElementById('paymayaQR').classList.remove('d-none');
+                } else if (selectedMethod === 'bank_transfer') {
+                    document.getElementById('bankTransferQR').classList.remove('d-none');
+                }
+            });
+            
+            // File validation and preview for image upload
+            const proofImage = document.getElementById('proofImage');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            if (proofImage) {
+                proofImage.addEventListener('change', function() {
+                    if (this.files && this.files[0]) {
+                        // Check file size
+                        const fileSize = this.files[0].size / 1024 / 1024; // in MB
+                        if (fileSize > 5) {
+                            alert('File size exceeds 5MB. Please select a smaller file.');
+                            this.value = ''; // Clear the input
+                            if (imagePreview) {
+                                imagePreview.innerHTML = ''; // Clear preview
+                            }
+                            return;
+                        }
+                        
+                        // Check file type
+                        const fileType = this.files[0].type;
+                        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                        if (!validTypes.includes(fileType)) {
+                            alert('Invalid file type. Only JPG, PNG, and GIF images are allowed.');
+                            this.value = ''; // Clear the input
+                            if (imagePreview) {
+                                imagePreview.innerHTML = ''; // Clear preview
+                            }
+                            return;
+                        }
+                        
+                        // Create image preview if container exists
+                        if (imagePreview) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                imagePreview.innerHTML = `
+                                    <img src="${e.target.result}" class="img-fluid rounded mt-2 mb-2" style="max-height: 200px;">
+                                `;
+                            };
+                            reader.readAsDataURL(this.files[0]);
+                        }
+                    }
+                });
+            }
+            
+            // Payment completion button (modified to use save-payment-proof.php)
+            const paymentCompleteBtn = document.getElementById('paymentComplete');
+            if (paymentCompleteBtn) {
+                paymentCompleteBtn.addEventListener('click', function() {
+                    // Check if file is uploaded
+                    const proofImage = document.getElementById('proofImage');
+                    if (!proofImage || !proofImage.files || !proofImage.files[0]) {
+                        alert('Please upload a screenshot of your payment proof.');
+                        return;
+                    }
+                    
+                    // Check reference number
+                    const referenceNumber = document.getElementById('referenceNumber');
+                    if (!referenceNumber.value.trim()) {
+                        alert('Please enter the reference/transaction number.');
+                        referenceNumber.focus();
+                        return;
+                    }
+                    
+                    // Set the request ID (or "pending" if not yet created)
+                    const requestIdInput = document.getElementById('proof_request_id');
+                    if (requestIdInput) {
+                        requestIdInput.value = 'pending';
+                    }
+                    
+                    // Set the payment method
+                    const paymentMethodInput = document.getElementById('proof_payment_method');
+                    if (paymentMethodInput) {
+                        paymentMethodInput.value = paymentMethodSelect.value;
+                    }
+                    
+                    // Create FormData
+                    const formData = new FormData();
+                    formData.append('request_id', requestIdInput.value);
+                    formData.append('payment_method', paymentMethodSelect.value);
+                    formData.append('reference_number', referenceNumber.value.trim());
+                    formData.append('payment_notes', document.getElementById('paymentNotes').value.trim());
+                    formData.append('proof_image', proofImage.files[0]);
+                    
+                    // Show loading state
+                    paymentCompleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                    paymentCompleteBtn.disabled = true;
+                    
+                    // Submit via fetch API
+                    fetch('save-payment-proof.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Close modal
+                            const modalInstance = bootstrap.Modal.getInstance(qrCodeModal);
+                            if (modalInstance) {
+                                modalInstance.hide();
+                            }
+                            
+                            // Create preview display if data.preview is true
+                            if (data.preview) {
+                                // Create preview element
+                                const previewDisplay = document.createElement('div');
+                                previewDisplay.id = 'paymentPreviewDisplay';
+                                previewDisplay.className = 'mt-3 border rounded p-3 bg-light';
+                                
+                                // Read the current file with FileReader to get a data URL for the preview
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    previewDisplay.innerHTML = `
+                                        <h5 class="mb-3"><i class="bi bi-file-earmark-image me-2"></i>Payment Screenshot</h5>
+                                        <div class="row">
+                                            <div class="col-md-6 text-center mb-3">
+                                                <img src="${e.target.result}" class="img-fluid rounded" style="max-height: 200px; border: 1px solid #ddd;">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p class="mb-1"><strong>Reference Number:</strong> ${referenceNumber.value.trim()}</p>
+                                                <p class="mb-1"><strong>Payment Method:</strong> ${paymentMethodSelect.options[paymentMethodSelect.selectedIndex].text}</p>
+                                                <p class="mb-1"><strong>Status:</strong> <span class="badge bg-info">Saved</span></p>
+                                                ${document.getElementById('paymentNotes').value.trim() ? 
+                                                    `<p class="mb-1"><strong>Notes:</strong> ${document.getElementById('paymentNotes').value.trim()}</p>` : ''}
+                                            </div>
+                                        </div>
+                                    `;
+                                    
+                                    // Add the preview display to the page
+                                    if (onlinePaymentInfo) {
+                                        // Remove any existing preview
+                                        const existingPreview = document.getElementById('paymentPreviewDisplay');
+                                        if (existingPreview) {
+                                            existingPreview.remove();
+                                        }
+                                        
+                                        onlinePaymentInfo.after(previewDisplay);
+                                    }
+                                };
+                                reader.readAsDataURL(proofImage.files[0]);
+                            }
+                            
+                            // Show success message
+                            const successAlert = document.createElement('div');
+                            successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
+                            successAlert.innerHTML = `
+                                <i class="bi bi-check-circle me-2"></i>
+                                <strong>Payment proof saved!</strong> ${data.message}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            `;
+                            
+                            // Add the success alert to the page
+                            if (onlinePaymentInfo) {
+                                onlinePaymentInfo.after(successAlert);
+                            } else {
+                                const alertContainer = document.querySelector('.container.py-4');
+                                if (alertContainer) {
+                                    alertContainer.prepend(successAlert);
+                                }
+                            }
+                            
+                            // Reset form and preview
+                            document.getElementById('referenceNumber').value = '';
+                            document.getElementById('paymentNotes').value = '';
+                            document.getElementById('proofImage').value = '';
+                            if (imagePreview) {
+                                imagePreview.innerHTML = '';
+                            }
+                            
+                            // Auto-dismiss alert after 5 seconds
+                            setTimeout(function() {
+                                successAlert.remove();
+                            }, 5000);
+                            
+                            // If there's a redirect URL, navigate after a delay
+                            if (data.redirect) {
+                                setTimeout(function() {
+                                    window.location.href = data.redirect;
+                                }, 1500);
+                            }
+                        } else {
+                            // Show error message
+                            alert(data.message || 'An error occurred while saving your payment proof.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while processing your request. Please try again.');
+                    })
+                    .finally(() => {
+                        // Reset button state
+                        paymentCompleteBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Save Payment Proof';
+                        paymentCompleteBtn.disabled = false;
+                    });
+                });
+            }
+            
+            // Trigger change event to initialize UI
+            if (paymentMethodSelect) {
+                paymentMethodSelect.dispatchEvent(new Event('change'));
+            }
+        });
     </script>
 </body>
 </html>

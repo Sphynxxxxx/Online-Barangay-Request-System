@@ -31,6 +31,7 @@ $request = null;
 $requestDetails = null;
 $formErrors = [];
 $formSuccess = '';
+$photoPath = null;
 
 try {
     $db = new Database();
@@ -280,6 +281,25 @@ if (isset($_SESSION['error_msg'])) {
             border-left: 4px solid #0d6efd;
         }
         
+        .payment-proof-container {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            background-color: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+
+        .payment-proof-thumbnail {
+            cursor: pointer;
+            max-height: 150px;
+            border: 2px solid #fff;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            transition: transform 0.2s;
+        }
+
+        .payment-proof-thumbnail:hover {
+            transform: scale(1.03);
+        }
         footer {
             height: 100px;
             display: flex;
@@ -450,6 +470,23 @@ if (isset($_SESSION['error_msg'])) {
                                         
                                         <dt>Processing Fee</dt>
                                         <dd>₱<?php echo number_format($request['processing_fee'], 2); ?></dd>
+
+                                        <div class="col-md-6 mb-3">
+                                            Payment Method:
+                                            <p>
+                                                <?php 
+                                                $paymentMethods = [
+                                                    'cash' => 'Cash on Pickup',
+                                                    'gcash' => 'GCash',
+                                                    'paymaya' => 'PayMaya',
+                                                    'bank_transfer' => 'Bank Transfer'
+                                                ];
+                                                
+                                                $paymentMethod = isset($requestDetails['payment_method']) ? $requestDetails['payment_method'] : 'cash';
+                                                echo htmlspecialchars($paymentMethods[$paymentMethod] ?? 'Cash on Pickup');
+                                                ?>
+                                            </p>
+                                        </div>
                                         
                                         <dt>Payment Status</dt>
                                         <dd>
@@ -459,6 +496,31 @@ if (isset($_SESSION['error_msg'])) {
                                             <span class="badge bg-warning text-dark">Pending Payment</span>
                                             <?php endif; ?>
                                         </dd>
+
+                                        <!-- Payment Proof Section -->
+                                        <?php
+                                        // Fetch payment proof from database
+                                        $paymentProof = null;
+                                        try {
+                                            $db = new Database();
+                                            $proofSql = "SELECT * FROM payment_proofs WHERE request_id = ? ORDER BY created_at DESC LIMIT 1";
+                                            $paymentProof = $db->fetchOne($proofSql, [$requestId]);
+                                            $db->closeConnection();
+                                        } catch (Exception $e) {
+                                            error_log("Payment Proof Error: " . $e->getMessage());
+                                        }
+                                        ?>
+
+                                        <?php if ($paymentProof): ?>
+                                        <dt>Payment Proof</dt>
+                                        <dd>
+                                            <button type="button" class="btn btn-sm btn-primary mt-1" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#paymentProofModal">
+                                                <i class="bi bi-eye me-1"></i> View Proof
+                                            </button>
+                                        </dd>
+                                        <?php endif; ?>
                                         
                                         <dt>Last Updated</dt>
                                         <dd><?php echo $request['last_updated'] ?? 'Not available'; ?></dd>
@@ -680,7 +742,46 @@ if (isset($_SESSION['error_msg'])) {
             </div>
         </div>
     </div>
-    
+
+    <!-- Payment Proof Modal -->
+    <?php if ($paymentProof && !empty($paymentProof['proof_image'])): ?>
+    <div class="modal fade" id="paymentProofModal" tabindex="-1" aria-labelledby="paymentProofModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="paymentProofModalLabel">
+                        <i class="bi bi-credit-card me-2"></i>Payment Proof
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0 bg-dark text-center">
+                    <img src="<?php echo htmlspecialchars($paymentProof['proof_image']); ?>" 
+                        alt="Payment Proof" 
+                        class="img-fluid" 
+                        style="max-height: 80vh;">
+                </div>
+                <div class="modal-footer">
+                    <div class="text-start me-auto small">
+                        <p class="mb-1"><strong>Reference Number:</strong> <?php echo htmlspecialchars($paymentProof['payment_reference']); ?></p>
+                        <p class="mb-1"><strong>Payment Method:</strong> <?php echo ucfirst(htmlspecialchars($paymentProof['payment_method'])); ?></p>
+                        <p class="mb-1"><strong>Date Submitted:</strong> <?php echo date('M d, Y h:i A', strtotime($paymentProof['created_at'])); ?></p>
+                        <?php if (!empty($paymentProof['payment_notes'])): ?>
+                        <p class="mb-1"><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($paymentProof['payment_notes'])); ?></p>
+                        <?php endif; ?>
+                    </div>
+                    <a href="<?php echo htmlspecialchars($paymentProof['proof_image']); ?>" 
+                    download class="btn btn-success">
+                        <i class="bi bi-download me-2"></i>Download
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+        
     <!-- Footer -->
     <footer class="bg-dark text-white">
         <div class="container">
