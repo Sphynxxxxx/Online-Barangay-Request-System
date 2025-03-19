@@ -375,6 +375,89 @@ if ($conn->connect_error) {
         $stmt->close();
     }
 
+    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_payment']) && isset($_POST['is_cash_payment'])) {
+        $paymentStatus = $_POST['payment_status'] ? 1 : 0;
+        $referenceNumber = isset($_POST['reference_number']) ? trim($_POST['reference_number']) : '';
+        $paymentDate = isset($_POST['payment_date']) ? $_POST['payment_date'] : date('Y-m-d');
+        $paymentNotes = isset($_POST['payment_notes']) ? trim($_POST['payment_notes']) : 'Cash payment verified by admin.';
+        
+        // Update request payment status
+        $updatePaymentSql = "UPDATE requests 
+                            SET payment_status = ?, 
+                                updated_at = NOW() 
+                            WHERE request_id = ?";
+        
+        $stmt = $conn->prepare($updatePaymentSql);
+        $stmt->bind_param("ii", $paymentStatus, $requestId);
+        
+        if ($stmt->execute()) {
+            // Insert a new payment proof record
+            $insertSql = "INSERT INTO payment_proofs (request_id, user_id, payment_method, payment_reference, 
+                          payment_notes, status, created_at, verified_at, verified_by, remarks) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)";
+            
+            $adminId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
+            $status = 'verified';
+            $paymentMethod = 'cash';
+            $createdAt = $paymentDate . ' ' . date('H:i:s');
+            
+            $stmtInsert = $conn->prepare($insertSql);
+            $stmtInsert->bind_param(
+                "iisssssis", 
+                $requestId, 
+                $requestDetails['user_id'],
+                $paymentMethod,
+                $referenceNumber,
+                $paymentNotes,
+                $status,
+                $createdAt,
+                $adminId,
+                $paymentNotes
+            );
+            $stmtInsert->execute();
+            $stmtInsert->close();
+            
+            // Create notification for the user
+            $notifSql = "INSERT INTO notifications (user_id, message, is_read, is_system, created_at) 
+                       VALUES (?, ?, 0, 0, NOW())";
+            $notifMessage = "Your cash payment for Request #$requestId has been recorded.";
+            $stmt2 = $conn->prepare($notifSql);
+            $stmt2->bind_param("is", $requestDetails['user_id'], $notifMessage);
+            $stmt2->execute();
+            $stmt2->close();
+            
+            $showAlert = true;
+            $alertType = "success";
+            $alertMessage = "Cash payment has been recorded successfully.";
+            
+            // Refresh request details
+            $stmt = $conn->prepare($requestSql);
+            $stmt->bind_param("i", $requestId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $requestDetails = $result->fetch_assoc();
+            
+            // Refresh payment proof details
+            $stmtPayment = $conn->prepare($paymentSql);
+            $stmtPayment->bind_param("i", $requestId);
+            $stmtPayment->execute();
+            $paymentResult = $stmtPayment->get_result();
+            
+            if ($paymentResult->num_rows > 0) {
+                $paymentProof = $paymentResult->fetch_assoc();
+            }
+            
+            $stmtPayment->close();
+        } else {
+            $showAlert = true;
+            $alertType = "danger";
+            $alertMessage = "Error recording cash payment: " . $stmt->error;
+        }
+        $stmt->close();
+    }
+
+
+
     // Close connection
     $conn->close();
 }
@@ -764,6 +847,12 @@ $proofStatusColors = [
                                         <?php endif; ?>
                                     </div>
                                     <div class="col-md-6">
+                                        <?php 
+                                        // Only show image and view button if it's not a cash payment
+                                        $paymentMethod = isset($paymentProof['payment_method']) ? $paymentProof['payment_method'] : 
+                                                        (isset($requestDetails['payment_method']) ? $requestDetails['payment_method'] : 'cash');
+                                        if ($paymentMethod !== 'cash'): 
+                                        ?>
                                         <div class="text-center mb-3">
                                             <img src="<?php echo htmlspecialchars(getPaymentProofPath($paymentProof)); ?>" 
                                                 class="proof-image img-thumbnail" alt="Payment Proof" 
@@ -779,6 +868,13 @@ $proofStatusColors = [
                                                 <i class="bi bi-zoom-in me-2"></i>View Full Image
                                             </button>
                                         </div>
+                                        <?php else: ?>
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            <strong>Cash Payment</strong>
+                                            <p class="mb-0">This payment was made with cash. No image proof is required.</p>
+                                        </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 
@@ -800,12 +896,6 @@ $proofStatusColors = [
                                             <div class="col-md-6 mb-3">
                                                 <input type="hidden" name="proof_id" value="<?php echo $paymentProof['proof_id'] ?? 0; ?>">
                                             </div>
-                                            <!--<div class="col-12 mb-3">
-                                                <label for="payment_notes" class="form-label">Payment Notes/Remarks</label>
-                                                <textarea class="form-control" id="payment_notes" name="payment_notes" rows="2"><?php 
-                                                    echo htmlspecialchars(($paymentProof['remarks'] && $paymentProof['remarks'] !== '0') ? $paymentProof['remarks'] : ''); 
-                                                ?></textarea>
-                                            </div>-->
                                             <div class="col-12">
                                                 <input type="hidden" name="update_payment" value="1">
                                                 <button type="submit" class="btn btn-success">
@@ -912,17 +1002,22 @@ $proofStatusColors = [
                                     <?php endif; ?>
                                     
                                     <!-- Quick payment status buttons -->
-                                    <?php if (isset($requestDetails['payment_status']) && $requestDetails['payment_status'] != 1 && $paymentProof): ?>
+                                    <?php if ((!isset($requestDetails['payment_status']) || $requestDetails['payment_status'] != 1) && $paymentProof): ?>
                                     <hr>
                                     <button type="button" class="btn btn-outline-success" onclick="markAsPaid()">
                                         <i class="bi bi-cash-coin me-2"></i>Mark as Paid
                                     </button>
                                     <?php endif; ?>
+
+                                    <?php if ($requestDetails['payment_method'] === 'cash' && (!isset($requestDetails['payment_status']) || $requestDetails['payment_status'] != 1)): ?>
+                                    <hr>
+                                    <button type="button" class="btn btn-outline-success" onclick="createCashPayment()">
+                                        <i class="bi bi-cash-coin me-2"></i>Record Cash Payment
+                                    </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -979,7 +1074,7 @@ $proofStatusColors = [
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <?php if ($paymentProof && isset($requestDetails['payment_status']) && $requestDetails['payment_status'] != 1): ?>
+                    <?php if ($paymentProof && (!isset($requestDetails['payment_status']) || $requestDetails['payment_status'] != 1)): ?>
                     <button type="button" class="btn btn-success" onclick="markAsPaid()">
                         <i class="bi bi-check-circle me-2"></i>Verify Payment
                     </button>
@@ -989,6 +1084,60 @@ $proofStatusColors = [
                     <a href="#" id="downloadProofBtn" class="btn btn-primary" download target="_blank">
                         <i class="bi bi-download me-2"></i>Download
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="cashPaymentModal" tabindex="-1" aria-labelledby="cashPaymentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cashPaymentModalLabel">
+                        <i class="bi bi-cash-coin me-2"></i>Record Cash Payment
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="cashPaymentForm" method="POST">
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Use this form to record a cash payment for this request.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="cash_reference_number" class="form-label">Receipt Number (if available)</label>
+                            <input type="text" class="form-control" id="cash_reference_number" name="reference_number" placeholder="Enter receipt number (optional)">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="cash_payment_date" class="form-label">Payment Date</label>
+                            <input type="date" class="form-control" id="cash_payment_date" name="payment_date" value="<?php echo date('Y-m-d'); ?>">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="cash_payment_notes" class="form-label">Payment Notes</label>
+                            <textarea class="form-control" id="cash_payment_notes" name="payment_notes" rows="2" placeholder="Any additional information about this payment">Cash payment verified by admin.</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Payment Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input type="text" class="form-control" id="cash_payment_amount" readonly value="<?php echo number_format($requestDetails['processing_fee'], 2); ?>">
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" name="is_cash_payment" value="1">
+                        <input type="hidden" name="update_payment" value="1">
+                        <input type="hidden" name="payment_status" value="1">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="submitCashPayment">
+                        <i class="bi bi-check-circle me-2"></i>Record Payment
+                    </button>
                 </div>
             </div>
         </div>
@@ -1089,42 +1238,6 @@ $proofStatusColors = [
             }
         }
 
-        // Handle image loading events
-        document.addEventListener('DOMContentLoaded', function() {
-            const modalImg = document.getElementById('modalPaymentProofImage');
-            if (modalImg) {
-                // Handle successful image load
-                modalImg.onload = function() {
-                    // Hide spinner if it exists
-                    const spinner = document.getElementById('imageLoadingSpinner');
-                    if (spinner) {
-                        spinner.style.display = 'none';
-                    }
-                };
-                
-                // Handle image loading errors
-                modalImg.onerror = function() {
-                    // Hide spinner if it exists
-                    const spinner = document.getElementById('imageLoadingSpinner');
-                    if (spinner) {
-                        spinner.style.display = 'none';
-                    }
-                    
-                    // Show placeholder image
-                    this.src = 'assets/img/no-image.jpg';
-                    this.classList.add('img-error');
-                    console.warn('Failed to load payment proof image');
-                    
-                    // Disable download button
-                    const downloadBtn = document.getElementById('downloadProofBtn');
-                    if (downloadBtn) {
-                        downloadBtn.classList.add('disabled');
-                        downloadBtn.setAttribute('aria-disabled', 'true');
-                    }
-                };
-            }
-        });
-
         // Quick function to mark as paid
         function markAsPaid() {
             const paymentCheckbox = document.getElementById('payment_status');
@@ -1139,6 +1252,21 @@ $proofStatusColors = [
                 
                 // Submit the payment form
                 document.getElementById('paymentUpdateForm').submit();
+            }
+        }
+
+        // Function to create a cash payment record
+        function createCashPayment() {
+            // Reset the form fields to default values
+            document.getElementById('cash_reference_number').value = '';
+            document.getElementById('cash_payment_date').value = '<?php echo date('Y-m-d'); ?>';
+            document.getElementById('cash_payment_notes').value = 'Cash payment verified by admin.';
+            
+            // Show the modal
+            const modalElement = document.getElementById('cashPaymentModal');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
             }
         }
 
@@ -1223,7 +1351,7 @@ $proofStatusColors = [
             }
         }
 
-        // Highlight ready for pickup status with animation
+        // Document Ready Event Handler
         document.addEventListener('DOMContentLoaded', function() {
             // Add special animation to Ready for Pickup badges
             const readyBadges = document.querySelectorAll('.badge-ready');
@@ -1265,6 +1393,58 @@ $proofStatusColors = [
                 tooltips.forEach(tooltip => {
                     new bootstrap.Tooltip(tooltip);
                 });
+            }
+            
+            // Set up the submit handler for the cash payment form
+            const submitCashPaymentBtn = document.getElementById('submitCashPayment');
+            if (submitCashPaymentBtn) {
+                submitCashPaymentBtn.addEventListener('click', function() {
+                    // Validate form
+                    const receiptNumber = document.getElementById('cash_reference_number').value.trim();
+                    const paymentDate = document.getElementById('cash_payment_date').value;
+                    
+                    if (!paymentDate) {
+                        alert('Please enter a payment date.');
+                        return;
+                    }
+                    
+                    // Submit the form
+                    document.getElementById('cashPaymentForm').submit();
+                });
+            }
+            
+            // Handle image loading events
+            const modalImg = document.getElementById('modalPaymentProofImage');
+            if (modalImg) {
+                // Handle successful image load
+                modalImg.onload = function() {
+                    // Hide spinner if it exists
+                    const spinner = document.getElementById('imageLoadingSpinner');
+                    if (spinner) {
+                        spinner.style.display = 'none';
+                    }
+                };
+                
+                // Handle image loading errors
+                modalImg.onerror = function() {
+                    // Hide spinner if it exists
+                    const spinner = document.getElementById('imageLoadingSpinner');
+                    if (spinner) {
+                        spinner.style.display = 'none';
+                    }
+                    
+                    // Show placeholder image
+                    this.src = 'assets/img/no-image.jpg';
+                    this.classList.add('img-error');
+                    console.warn('Failed to load payment proof image');
+                    
+                    // Disable download button
+                    const downloadBtn = document.getElementById('downloadProofBtn');
+                    if (downloadBtn) {
+                        downloadBtn.classList.add('disabled');
+                        downloadBtn.setAttribute('aria-disabled', 'true');
+                    }
+                };
             }
         });
     </script>
