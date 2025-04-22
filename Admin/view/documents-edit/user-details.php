@@ -326,7 +326,7 @@ $documentTypes = [
             <a href="../manage-users.php" class="d-block text-decoration-none text-white sidebar-item active">
                 <i class="bi bi-people me-2"></i> Manage Users
             </a>
-            <a href="../reports.php" class="d-block text-decoration-none text-white sidebar-item">
+            <!--<a href="../reports.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-graph-up me-2"></i> Reports
             </a>
             <a href="../system-logs.php" class="d-block text-decoration-none text-white sidebar-item">
@@ -334,7 +334,7 @@ $documentTypes = [
             </a>
             <a href="../settings.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-gear me-2"></i> Settings
-            </a>
+            </a>-->
         </div>
     </div>
     <!-- Main Content -->

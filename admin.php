@@ -266,7 +266,7 @@ if (isset($_SESSION['success_msg'])) {
             <a href="Admin/view/manage-users.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-people me-2"></i> Manage Users
             </a>
-            <a href="reports.php" class="d-block text-decoration-none text-white sidebar-item">
+            <!--<a href="reports.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-graph-up me-2"></i> Reports
             </a>
             <a href="Admin/view/announcements.php" class="d-block text-decoration-none text-white sidebar-item">
@@ -277,7 +277,7 @@ if (isset($_SESSION['success_msg'])) {
             </a>
             <a href="settings.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-gear me-2"></i> Settings
-            </a>
+            </a>-->
         </div>
     </div>
 

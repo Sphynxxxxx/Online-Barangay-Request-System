@@ -301,7 +301,7 @@ function formatDocumentType($type) {
             <a href="manage-users.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-people me-2"></i> Manage Users
             </a>
-            <a href="announcements.php" class="d-block text-decoration-none text-white sidebar-item">
+            <!--<a href="announcements.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-megaphone me-2"></i> Announcements
             </a>
             <a href="../../reports.php" class="d-block text-decoration-none text-white sidebar-item">
@@ -312,7 +312,7 @@ function formatDocumentType($type) {
             </a>
             <a href="../../settings.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-gear me-2"></i> Settings
-            </a>
+            </a>-->
         </div>
     </div>
 
