@@ -1,10 +1,9 @@
 <?php
-session_start();
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+require_once "../../backend/connections/config.php";
 
-$servername = "localhost"; 
-$username = "root"; 
-$password = ""; 
-$dbname = "barangay_request_system"; 
 
 $showAlert = false;
 $alertType = "";

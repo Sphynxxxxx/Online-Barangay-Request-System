@@ -37,21 +37,31 @@ function storeTemporaryPaymentProof($file, $userId) {
 
 // Store payment information in session for later use
 function storePaymentInfoInSession($filePath, $paymentMethod, $referenceNumber, $paymentNotes) {
+    // Debug log to check reference number
+    error_log('Storing reference number in session: ' . $referenceNumber);
+    
     $_SESSION['payment_proof'] = [
         'file_path' => $filePath,
         'payment_method' => $paymentMethod,
-        'reference_number' => $referenceNumber,
+        'reference_number' => $referenceNumber, // Using consistent key name
         'payment_notes' => $paymentNotes,
         'timestamp' => time()
     ];
+    
+    // Verify data was stored in session
+    error_log('Session payment_proof data: ' . print_r($_SESSION['payment_proof'], true));
 }
 
 // Handle the AJAX request
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the request data
     $paymentMethod = $_POST['payment_method'] ?? '';
-    $referenceNumber = $_POST['reference_number'] ?? '';
+    $referenceNumber = $_POST['reference_number'] ?? ''; // Match the name in the JS formData
     $paymentNotes = $_POST['payment_notes'] ?? '';
+    
+    // Debug logs
+    error_log('Payment method received: ' . $paymentMethod);
+    error_log('Reference number received: ' . $referenceNumber);
     
     // Validate inputs
     if (empty($paymentMethod)) {

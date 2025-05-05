@@ -1,10 +1,10 @@
 <?php
-session_start();
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
-$servername = "localhost"; 
-$username = "root"; 
-$password = ""; 
-$dbname = "barangay_request_system"; 
+require_once "../../../backend/connections/config.php";
+
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 

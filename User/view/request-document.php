@@ -24,11 +24,7 @@ if ($userType != 'resident') {
 $documentTypes = [
     'barangay_clearance' => 'Barangay Clearance',
     'certificate_residency' => 'Certificate of Residency',
-    'business_permit' => 'Business Permit',
     'good_moral' => 'Good Moral Certificate',
-    'indigency_certificate' => 'Certificate of Indigency',
-    'cedula' => 'Community Tax Certificate (Cedula)',
-    'solo_parent' => 'Solo Parent Certificate',
     'first_time_jobseeker' => 'First Time Jobseeker Certificate'
 ];
 
@@ -117,10 +113,29 @@ $formSuccess = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate inputs
     $docType = $_POST['document_type'] ?? '';
-    $purpose = $_POST['purpose'] ?? '';
-    $purposeOther = $_POST['purpose_other'] ?? '';
     $urgentRequest = isset($_POST['urgent_request']) ? 1 : 0;
     $paymentMethod = $_POST['payment_method'] ?? 'cash';
+    $purpose = $_POST['purpose'] ?? ''; 
+    $purposeOther = $_POST['purpose_other'] ?? ''; 
+    
+    // Get purpose only if not Good Moral Certificate or First Time Jobseeker
+    if ($docType !== 'good_moral' && $docType !== 'first_time_jobseeker') {
+        if (!array_key_exists($purpose, $documentPurposes)) {
+            $formErrors[] = "Please select a valid purpose.";
+        }
+        
+        if ($purpose === 'others' && empty($purposeOther)) {
+            $formErrors[] = "Please specify the purpose of your request.";
+        }
+    } else {
+        // For Good Moral or First Time Jobseeker, set default purpose
+        if ($docType === 'good_moral') {
+            $purpose = 'character_reference';
+        } else if ($docType === 'first_time_jobseeker') {
+            $purpose = 'employment';
+        }
+        $purposeOther = '';
+    }
     
     // Validate Barangay Clearance specific fields if selected
     if ($docType === 'barangay_clearance') {
@@ -151,17 +166,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    // Validate Certificate of Residency specific fields if selected
+    if ($docType === 'certificate_residency') {
+        $crFullname = $_POST['cr_fullname'] ?? '';
+        $crAddress = $_POST['cr_address'] ?? '';
+        
+        if (empty($crFullname)) {
+            $formErrors[] = "Please enter your full name for Certificate of Residency.";
+        }
+        
+        if (empty($crAddress)) {
+            $formErrors[] = "Please enter your complete address for Certificate of Residency.";
+        }
+    }
+
+    // Validate Good Moral Certificate specific fields if selected
+    if ($docType === 'good_moral') {
+        $gmFullname = $_POST['gm_fullname'] ?? '';
+        $gmCivilStatus = $_POST['gm_civil_status'] ?? '';
+        
+        if (empty($gmFullname)) {
+            $formErrors[] = "Please enter your full name for Good Moral Certificate.";
+        }
+        
+        if (empty($gmCivilStatus) || !in_array($gmCivilStatus, ['single', 'married', 'widowed', 'divorced', 'separated'])) {
+            $formErrors[] = "Please select a valid civil status for Good Moral Certificate.";
+        }
+    }
+
+    // Validate First Time Jobseeker Certificate specific fields if selected
+    if ($docType === 'first_time_jobseeker') {
+        $jsFullname = $_POST['js_fullname'] ?? '';
+        $jsAddress = $_POST['js_address'] ?? '';
+        
+        if (empty($jsFullname)) {
+            $formErrors[] = "Please enter your full name for First Time Jobseeker Certificate.";
+        }
+        
+        if (empty($jsAddress)) {
+            $formErrors[] = "Please enter your complete address for First Time Jobseeker Certificate.";
+        }
+    }
+    
     // Basic validation
     if (!array_key_exists($docType, $documentTypes)) {
         $formErrors[] = "Please select a valid document type.";
-    }
-    
-    if (!array_key_exists($purpose, $documentPurposes)) {
-        $formErrors[] = "Please select a valid purpose.";
-    }
-    
-    if ($purpose === 'others' && empty($purposeOther)) {
-        $formErrors[] = "Please specify the purpose of your request.";
     }
     
     if (!array_key_exists($paymentMethod, $paymentMethods)) {
@@ -173,7 +222,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $db = new Database();
             
-            $purposeText = ($purpose === 'others') ? $purposeOther : $documentPurposes[$purpose];
+            // Set purpose text - for Good Moral and First Time Jobseeker, use default purposes
+            if ($docType === 'good_moral') {
+                $purposeText = "Character Reference";
+            } else if ($docType === 'first_time_jobseeker') {
+                $purposeText = "Employment - First Time Jobseeker";
+            } else {
+                $purposeText = ($purpose === 'others') ? $purposeOther : $documentPurposes[$purpose];
+            }
             
             $processingFee = $documentFees[$docType];
             if ($urgentRequest) {
@@ -206,9 +262,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $db->execute($detailsSql, $detailsParams);
                 }
                 
+                // For Certificate of Residency, store additional details in the request_details table
+                if ($docType === 'certificate_residency') {
+                    $crFullname = $_POST['cr_fullname'] ?? '';
+                    $crAddress = $_POST['cr_address'] ?? '';
+                    
+                    $detailsSql = "INSERT INTO request_details 
+                                (request_id, fullname, address) 
+                                VALUES (?, ?, ?)";
+                    $detailsParams = [$requestId, $crFullname, $crAddress];
+                    $db->execute($detailsSql, $detailsParams);
+                }
+                
+                // For Good Moral Certificate, store additional details in the request_details table
+                if ($docType === 'good_moral') {
+                    $gmFullname = $_POST['gm_fullname'] ?? '';
+                    $gmCivilStatus = $_POST['gm_civil_status'] ?? '';
+                    
+                    $detailsSql = "INSERT INTO request_details 
+                                (request_id, fullname, civil_status) 
+                                VALUES (?, ?, ?)";
+                    $detailsParams = [$requestId, $gmFullname, $gmCivilStatus];
+                    $db->execute($detailsSql, $detailsParams);
+                }
+
+                // For First Time Jobseeker Certificate, store additional details in the request_details table
+                if ($docType === 'first_time_jobseeker') {
+                    $jsFullname = $_POST['js_fullname'] ?? '';
+                    $jsAddress = $_POST['js_address'] ?? '';
+                    
+                    $detailsSql = "INSERT INTO request_details 
+                                (request_id, fullname, address) 
+                                VALUES (?, ?, ?)";
+                    $detailsParams = [$requestId, $jsFullname, $jsAddress];
+                    $db->execute($detailsSql, $detailsParams);
+                }
+                
                 // --- Process payment proof if it exists in session ---
                 if (isset($_SESSION['payment_proof']) && $_SESSION['payment_proof']['timestamp'] > (time() - 3600)) { // Only use if less than 1 hour old
                     $paymentProof = $_SESSION['payment_proof'];
+                    
+                    // Debug log for payment data from session
+                    error_log('Payment proof data from session: ' . print_r($paymentProof, true));
                     
                     // Move temporary file to final destination
                     $tempPath = $paymentProof['file_path'];
@@ -225,19 +320,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (file_exists($tempPath) && copy($tempPath, $finalPath)) {
                         // Insert into payment_proofs table
                         $paymentSql = "INSERT INTO payment_proofs (request_id, user_id, payment_method, payment_reference, 
-                                       proof_image, payment_notes, status, created_at) 
-                                      VALUES (?, ?, ?, ?, ?, ?, 'submitted', NOW())";
+                                    proof_image, payment_notes, status, created_at) 
+                                    VALUES (?, ?, ?, ?, ?, ?, 'submitted', NOW())";
                         
+                        // Make sure we're using the right key name from the session array
                         $paymentParams = [
                             $requestId, 
                             $userId, 
                             $paymentProof['payment_method'],
-                            $paymentProof['reference_number'],
+                            $paymentProof['reference_number'],  // Use the correct session key
                             $finalPath,
                             $paymentProof['payment_notes']
                         ];
                         
                         $db->execute($paymentSql, $paymentParams);
+                        
+                        // Also update the request's payment details in the requests table
+                        $updateRequestSql = "UPDATE requests SET 
+                                            payment_status = 1, 
+                                            payment_reference = ?, 
+                                            payment_proof = ? 
+                                            WHERE request_id = ?";
+                        $updateParams = [
+                            $paymentProof['reference_number'],
+                            $finalPath,
+                            $requestId
+                        ];
+                        $db->execute($updateRequestSql, $updateParams);
                         
                         // Update the notification message to include payment confirmation
                         $notifMessage = "Your request for " . $documentTypes[$docType] . " has been submitted successfully. Payment proof has been received.";
@@ -301,6 +410,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
 
 // Get notifications for the navigation bar
 $notifications = [];
@@ -685,16 +795,105 @@ try {
                                 <hr class="my-4">
                             </div>
 
-                            <div class="mb-3">
-                                <label for="purpose" class="form-label">Purpose of Request <span class="text-danger">*</span></label>
-                                <select class="form-select" id="purpose" name="purpose" required>
-                                    <option value="" selected disabled>Select purpose...</option>
-                                    <?php foreach ($documentPurposes as $key => $value): ?>
-                                    <option value="<?php echo $key; ?>" <?php echo (isset($_POST['purpose']) && $_POST['purpose'] === $key) ? 'selected' : ''; ?>>
-                                        <?php echo $value; ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
+                            <!-- Additional fields for Certificate of Residency only -->
+                            <div id="certificateResidencyFields" class="<?php echo ($selectedDocType !== 'certificate_residency') ? 'd-none' : ''; ?>">
+                                <h5 class="mb-3">Personal Information</h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="cr_fullname" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="cr_fullname" name="cr_fullname" 
+                                            value="<?php echo isset($_POST['cr_fullname']) ? htmlspecialchars($_POST['cr_fullname']) : ''; ?>" 
+                                            required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="cr_address" class="form-label">Complete Address <span class="text-danger">*</span></label>
+                                        <textarea class="form-control" id="cr_address" name="cr_address" rows="2" required><?php echo isset($_POST['cr_address']) ? htmlspecialchars($_POST['cr_address']) : ''; ?></textarea>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info mb-4">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    The personal information above will be used in the Certificate of Residency document.
+                                </div>
+                                <hr class="my-4">
+                            </div>
+
+                            <!-- Additional fields for Good Moral Certificate only -->
+                            <div id="goodMoralFields" class="<?php echo ($selectedDocType !== 'good_moral') ? 'd-none' : ''; ?>">
+                                <h5 class="mb-3">Personal Information</h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="gm_fullname" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="gm_fullname" name="gm_fullname" 
+                                            value="<?php echo isset($_POST['gm_fullname']) ? htmlspecialchars($_POST['gm_fullname']) : ''; ?>" 
+                                            required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="gm_civil_status" class="form-label">Civil Status <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="gm_civil_status" name="gm_civil_status" required>
+                                            <option value="" selected disabled>Select civil status...</option>
+                                            <option value="single" <?php echo (isset($_POST['gm_civil_status']) && $_POST['gm_civil_status'] === 'single') ? 'selected' : ''; ?>>Single</option>
+                                            <option value="married" <?php echo (isset($_POST['gm_civil_status']) && $_POST['gm_civil_status'] === 'married') ? 'selected' : ''; ?>>Married</option>
+                                            <option value="widowed" <?php echo (isset($_POST['gm_civil_status']) && $_POST['gm_civil_status'] === 'widowed') ? 'selected' : ''; ?>>Widowed</option>
+                                            <option value="divorced" <?php echo (isset($_POST['gm_civil_status']) && $_POST['gm_civil_status'] === 'divorced') ? 'selected' : ''; ?>>Divorced</option>
+                                            <option value="separated" <?php echo (isset($_POST['gm_civil_status']) && $_POST['gm_civil_status'] === 'separated') ? 'selected' : ''; ?>>Separated</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info mb-4">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    The personal information above will be used in the Good Moral Certificate document.
+                                </div>
+                                <hr class="my-4">
+                            </div>
+
+                            <!-- Additional fields for First Time Jobseeker Certificate only -->
+                            <div id="jobseekerFields" class="<?php echo ($selectedDocType !== 'first_time_jobseeker') ? 'd-none' : ''; ?>">
+                                <h5 class="mb-3">Personal Information</h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="js_fullname" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="js_fullname" name="js_fullname" 
+                                            value="<?php echo isset($_POST['js_fullname']) ? htmlspecialchars($_POST['js_fullname']) : ''; ?>" 
+                                            required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="js_address" class="form-label">Complete Address <span class="text-danger">*</span></label>
+                                        <textarea class="form-control" id="js_address" name="js_address" rows="2" required><?php echo isset($_POST['js_address']) ? htmlspecialchars($_POST['js_address']) : ''; ?></textarea>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info mb-4">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    The personal information above will be used in the First Time Jobseeker Certificate document.
+                                </div>
+                                <hr class="my-4">
+                            </div>
+
+
+                            <div id="purposeContainer">
+                                <div class="mb-3">
+                                    <label for="purpose" class="form-label">Purpose of Request <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="purpose" name="purpose" required>
+                                        <option value="" selected disabled>Select purpose...</option>
+                                        <?php foreach ($documentPurposes as $key => $value): ?>
+                                        <option value="<?php echo $key; ?>" <?php echo (isset($_POST['purpose']) && $_POST['purpose'] === $key) ? 'selected' : ''; ?>>
+                                            <?php echo $value; ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3 <?php echo (!isset($_POST['purpose']) || $_POST['purpose'] !== 'others') ? 'd-none' : ''; ?>" id="otherPurposeDiv">
+                                    <label for="purpose_other" class="form-label">Specify Purpose <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="purpose_other" name="purpose_other" 
+                                        value="<?php echo isset($_POST['purpose_other']) ? htmlspecialchars($_POST['purpose_other']) : ''; ?>"
+                                        <?php echo (isset($_POST['purpose']) && $_POST['purpose'] === 'others') ? 'required' : ''; ?>>
+                                </div>
                             </div>
                             
                             <div class="mb-3 <?php echo (!isset($_POST['purpose']) || $_POST['purpose'] !== 'others') ? 'd-none' : ''; ?>" id="otherPurposeDiv">
@@ -902,6 +1101,10 @@ try {
             const urgentFeeElement = document.getElementById('urgentFee');
             const totalFeeElement = document.getElementById('totalFee');
             const barangayClearanceFields = document.getElementById('barangayClearanceFields');
+            const certificateResidencyFields = document.getElementById('certificateResidencyFields');
+            const jobseekerFields = document.getElementById('jobseekerFields');
+            const goodMoralFields = document.getElementById('goodMoralFields');
+            const purposeContainer = document.getElementById('purposeContainer');
             const paymentMethodSelect = document.getElementById('payment_method');
             const onlinePaymentInfo = document.getElementById('onlinePaymentInfo');
             const paymentQRs = document.querySelectorAll('.payment-qr');
@@ -951,6 +1154,97 @@ try {
                         document.getElementById('address').removeAttribute('required');
                         document.getElementById('civil_status').removeAttribute('required');
                         document.getElementById('residency_status').removeAttribute('required');
+                    }
+                    
+                    // Show/hide Certificate of Residency specific fields
+                    if (documentType === 'certificate_residency') {
+                        certificateResidencyFields.classList.remove('d-none');
+                        
+                        // Make the fields required
+                        document.getElementById('cr_fullname').setAttribute('required', true);
+                        document.getElementById('cr_address').setAttribute('required', true);
+                    } else {
+                        certificateResidencyFields.classList.add('d-none');
+                        
+                        // Remove required attribute
+                        if (document.getElementById('cr_fullname')) {
+                            document.getElementById('cr_fullname').removeAttribute('required');
+                        }
+                        if (document.getElementById('cr_address')) {
+                            document.getElementById('cr_address').removeAttribute('required');
+                        }
+                    }
+
+                    // Show/hide Good Moral Certificate specific fields
+                    if (documentType === 'good_moral') {
+                        goodMoralFields.classList.remove('d-none');
+                        
+                        // Make the fields required
+                        document.getElementById('gm_fullname').setAttribute('required', true);
+                        document.getElementById('gm_civil_status').setAttribute('required', true);
+                        
+                        // Hide purpose field for Good Moral Certificate
+                        if (purposeContainer) {
+                            purposeContainer.classList.add('d-none');
+                            // Remove required attribute from purpose field
+                            const purposeField = document.getElementById('purpose');
+                            if (purposeField) {
+                                purposeField.removeAttribute('required');
+                            }
+                        }
+                    } else {
+                        // Hide Good Moral fields
+                        goodMoralFields.classList.add('d-none');
+                        
+                        // Remove required attribute
+                        if (document.getElementById('gm_fullname')) {
+                            document.getElementById('gm_fullname').removeAttribute('required');
+                        }
+                        if (document.getElementById('gm_civil_status')) {
+                            document.getElementById('gm_civil_status').removeAttribute('required');
+                        }
+                    }
+
+                    // Show/hide First Time Jobseeker Certificate specific fields
+                    if (documentType === 'first_time_jobseeker') {
+                        jobseekerFields.classList.remove('d-none');
+                        
+                        // Make the fields required
+                        document.getElementById('js_fullname').setAttribute('required', true);
+                        document.getElementById('js_address').setAttribute('required', true);
+                        
+                        // Hide purpose field for First Time Jobseeker Certificate
+                        if (purposeContainer) {
+                            purposeContainer.classList.add('d-none');
+                            // Remove required attribute from purpose field
+                            const purposeField = document.getElementById('purpose');
+                            if (purposeField) {
+                                purposeField.removeAttribute('required');
+                            }
+                        }
+                    } else {
+                        // Hide First Time Jobseeker fields
+                        jobseekerFields.classList.add('d-none');
+                        
+                        // Remove required attribute
+                        if (document.getElementById('js_fullname')) {
+                            document.getElementById('js_fullname').removeAttribute('required');
+                        }
+                        if (document.getElementById('js_address')) {
+                            document.getElementById('js_address').removeAttribute('required');
+                        }
+                    }
+                    
+                    // Show purpose field for other document types
+                    if (documentType !== 'good_moral' && documentType !== 'first_time_jobseeker') {
+                        if (purposeContainer) {
+                            purposeContainer.classList.remove('d-none');
+                            // Add required attribute back to purpose field
+                            const purposeField = document.getElementById('purpose');
+                            if (purposeField) {
+                                purposeField.setAttribute('required', true);
+                            }
+                        }
                     }
                 }
             }
@@ -1105,7 +1399,7 @@ try {
                 });
             }
             
-            // Payment completion button (modified to use save-payment-proof.php)
+            // Payment completion button code
             const paymentCompleteBtn = document.getElementById('paymentComplete');
             if (paymentCompleteBtn) {
                 paymentCompleteBtn.addEventListener('click', function() {
@@ -1140,9 +1434,12 @@ try {
                     const formData = new FormData();
                     formData.append('request_id', requestIdInput.value);
                     formData.append('payment_method', paymentMethodSelect.value);
-                    formData.append('reference_number', referenceNumber.value.trim());
+                    formData.append('reference_number', referenceNumber.value.trim()); // Ensure this matches the PHP $_POST key
                     formData.append('payment_notes', document.getElementById('paymentNotes').value.trim());
                     formData.append('proof_image', proofImage.files[0]);
+                    
+                    // Debug log to check what's being sent
+                    console.log('Reference number being sent:', referenceNumber.value.trim());
                     
                     // Show loading state
                     paymentCompleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
