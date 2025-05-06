@@ -300,6 +300,9 @@ function formatDocumentType($type) {
             <a href="manage-users.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-people me-2"></i> Manage Users
             </a>
+            <a href="manage-payments.php" class="d-block text-decoration-none text-white sidebar-item">
+                <i class="bi bi-cash-coin me-2"></i> Manage Payments
+            </a>
             <!--<a href="announcements.php" class="d-block text-decoration-none text-white sidebar-item">
                 <i class="bi bi-megaphone me-2"></i> Announcements
             </a>

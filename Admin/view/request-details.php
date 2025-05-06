@@ -11,7 +11,6 @@ $alertMessage = "";
 $requestDetails = null;
 $paymentProof = null;
 
-// Function to handle getting payment proof image path from different locations
 function getPaymentProofPath($paymentProof) {
     // Define base paths
     $regularDir = '../../User/view/uploads/payment_proofs/';
@@ -961,6 +960,18 @@ $proofStatusColors = [
                                         <?php if ($requestDetails['document_type'] === 'barangay_clearance'): ?>
                                         <a href="documents-edit/edit-brgyclearance.php?id=<?php echo $requestDetails['request_id']; ?>" class="btn btn-success">
                                             <i class="bi bi-file-earmark-text me-2"></i>Edit Clearance Details
+                                        </a>
+                                        <?php elseif ($requestDetails['document_type'] === 'certificate_residency'): ?>
+                                        <a href="documents-edit/edit-residency.php?id=<?php echo $requestDetails['request_id']; ?>" class="btn btn-success">
+                                            <i class="bi bi-file-earmark-text me-2"></i>Edit Certificate Details
+                                        </a>
+                                        <?php elseif ($requestDetails['document_type'] === 'good_moral'): ?>
+                                        <a href="documents-edit/edit-goodmoral.php?id=<?php echo $requestDetails['request_id']; ?>" class="btn btn-success">
+                                            <i class="bi bi-file-earmark-text me-2"></i>Edit Certificate Details
+                                        </a>
+                                        <?php elseif ($requestDetails['document_type'] === 'first_time_jobseeker'): ?>
+                                        <a href="documents-edit/edit-jobseeker.php?id=<?php echo $requestDetails['request_id']; ?>" class="btn btn-success">
+                                            <i class="bi bi-file-earmark-text me-2"></i>Edit Certificate Details
                                         </a>
                                         <?php endif; ?>
                                     </div>

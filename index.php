@@ -64,7 +64,7 @@
         <div class="container">
             <h2 class="text-center mb-5">Our Services</h2>
             <div class="row g-4">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="card h-100 p-4 text-center">
                         <div class="feature-icon mb-3">
                             <i class="bi bi-file-earmark-check"></i>
@@ -73,7 +73,7 @@
                         <p class="text-muted">Request and receive your barangay clearance electronically. Fast and efficient processing.</p>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="card h-100 p-4 text-center">
                         <div class="feature-icon mb-3">
                             <i class="bi bi-people"></i>
@@ -82,13 +82,22 @@
                         <p class="text-muted">Apply for proof of residency certificates. Essential for various government transactions.</p>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="card h-100 p-4 text-center">
                         <div class="feature-icon mb-3">
-                            <i class="bi bi-clipboard-check"></i>
+                            <i class="bi bi-building"></i>
                         </div>
-                        <h3 class="fs-4">Business Permit</h3>
-                        <p class="text-muted">Apply for barangay business permits and track your application status online.</p>
+                        <h3 class="fs-4">Barangay Business Permit</h3>
+                        <p class="text-muted">Secure your barangay business clearance and monitor your permit status conveniently online.</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card h-100 p-4 text-center">
+                        <div class="feature-icon mb-3">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <h3 class="fs-4">Good Moral Certificate</h3>
+                        <p class="text-muted">Request a certificate of good moral character from your barangay quickly and securely online.</p>
                     </div>
                 </div>
             </div>

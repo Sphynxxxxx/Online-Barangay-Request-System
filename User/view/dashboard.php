@@ -504,11 +504,6 @@ if (isset($_SESSION['success_msg'])) {
                                         <i class="bi bi-megaphone me-2"></i>Barangay Announcements
                                     </a>
                                 </li>-->
-                                <li class="list-group-item">
-                                    <a href="contact.php" class="text-decoration-none">
-                                        <i class="bi bi-telephone me-2"></i>Contact Barangay Officials
-                                    </a>
-                                </li>
                             </ul>
                         </div>
                     </div>
