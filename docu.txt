@@ -5,3 +5,7 @@ mydh evpu ufco lyaq
 #qwertyui1
 
 
+$servername = "sql101.infinityfree.com"; 
+$username = "if0_37936763";       
+$password = "QPQaTE2bAZP";            
+$dbname = "if0_37936763_barangay_request_system";       
