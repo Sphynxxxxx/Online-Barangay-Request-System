@@ -171,6 +171,7 @@
         <div class="container">
             <div class="row">
                 <p>&copy; 2025 Barangay Clearance and Document Request System</p>
+                <p>Develop by: Larry Denver Biaco</p>
                 <div class="col-md-6 text-center text-md-end">
                     <a href="#" class="text-muted me-3"><i class="bi bi-facebook"></i></a>
                     <a href="#" class="text-muted me-3"><i class="bi bi-twitter"></i></a>
